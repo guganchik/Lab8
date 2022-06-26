@@ -78,6 +78,16 @@ public class InputCheck {
         }
     }
     
+    public static int checkSpeed(String input) {
+        try {
+            float param = Float.parseFloat(input);
+            if (param <= 0) throw new Exception();
+            return Const.SUCCESS;
+        } catch (Exception e) {
+            return Const.ERROR_108;
+        }
+    }
+    
     public static int checkVehicleType(String input) {
         try {
             VehicleType.valueOf(input);
@@ -104,7 +114,7 @@ public class InputCheck {
         return Const.SUCCESS;
     }
     
-    public static int checkVehicle(String name, String x, String y, String engine, String capacity, String distance, String type) {
+    public static int checkVehicle(String name, String x, String y, String engine, String capacity, String distance, String speed, String type) {
         int result;
         
         result = InputCheck.checkName(name);
@@ -133,6 +143,11 @@ public class InputCheck {
         }
 
         result = InputCheck.checkDistanceTravelled(distance);
+        if (result != Const.SUCCESS) {
+            return result;
+        }
+
+        result = InputCheck.checkSpeed(speed);
         if (result != Const.SUCCESS) {
             return result;
         }

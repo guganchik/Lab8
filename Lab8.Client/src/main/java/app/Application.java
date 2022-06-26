@@ -48,7 +48,7 @@ public class Application implements Observer {
     private DateFormat dateFormat;
     private ResourceBundle resourceBundle;
     
-    public static String[] COLUMNS = new String[] {"id", "name", "x", "y", "engine", "capacity", "distance", "date", "type", "owner"};
+    public static String[] COLUMNS = new String[] {"id", "name", "x", "y", "engine", "capacity", "distance", "speed", "date", "type", "owner"};
     
     
     private int mode;
@@ -157,8 +157,8 @@ public class Application implements Observer {
         }
     }
     
-    public boolean saveVehicle(String id, String name, String x, String y, String engine, String capacity, String distance, String type, String owner) {
-        int result = InputCheck.checkVehicle(name, x, y, engine, capacity, distance, type);
+    public boolean saveVehicle(String id, String name, String x, String y, String engine, String capacity, String distance, String speed, String type, String owner) {
+        int result = InputCheck.checkVehicle(name, x, y, engine, capacity, distance, speed, type);
         if (result != Const.SUCCESS) {
             showErrorDialog(result);
             return false;
@@ -169,11 +169,11 @@ public class Application implements Observer {
             Request request;
             Vehicle vehicle;
             if (id.equals("")) {
-                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, type);
+                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, speed, type);
                 request = new Request("add", null, vehicle, user.getLogin(), user.getHash());
             } else {
                 //int aid = Integer.parseInt(id);
-                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, type);
+                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, speed, type);
                 //vehicle.setId(aid);
                 String[] args = new String[1];
                 args[0] = id;
@@ -235,12 +235,12 @@ public class Application implements Observer {
                 showInfoDialog();
             }
         } else if (command.equals("add_if_max")) {
-            result = InputCheck.checkVehicle(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            result = InputCheck.checkVehicle(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             if (result != Const.SUCCESS) {
                 showErrorDialog(result);
                 return false;
             }
-            Vehicle vehicle = Vehicle.of(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            Vehicle vehicle = Vehicle.of(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             Request request = new Request(command, null, vehicle, user.getLogin(), user.getHash());
             networkProvider.send(request);
             if (confirm) {
@@ -267,6 +267,7 @@ public class Application implements Observer {
             "engine=" + vehicle.getEnginePower() + "\n" +
             "capacity=" + vehicle.getCapacity() + "\n" +
             "distance=" + vehicle.getDistanceTravelled() + "\n" +
+            "speed=" + vehicle.getSpeed() + "\n" +
             "date=" + vehicle.getCreationDate() + "\n" +
             "type=" + vehicle.getTypeAsString() + "\n" +
             "owner=" + vehicle.getOwner();

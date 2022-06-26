@@ -38,7 +38,7 @@ public class CollectionManager {
         ResultSet rs = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            pst = con.prepareStatement("SELECT \"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\" FROM \"vehicles\"");
+            pst = con.prepareStatement("SELECT \"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\", \"speed\" FROM \"vehicles\"");
             rs = pst.executeQuery();
             Vehicle vehicle;
             while (rs.next()) {
@@ -50,6 +50,7 @@ public class CollectionManager {
                         rs.getFloat("enginePower"),
                         rs.getLong("capacity"),
                         rs.getDouble("distanceTravelled"),
+                        rs.getFloat("speed"),
                         VehicleType.valueOf(rs.getString("vehicleType")),
                         rs.getString("owner")
                 );
@@ -105,7 +106,7 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "INSERT INTO \"vehicles\" (\"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO \"vehicles\" (\"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\", \"speed\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             pst = con.prepareStatement(sql);
             pst.setInt(1, vehicle.getId());
             pst.setString(2, vehicle.getName());
@@ -117,6 +118,7 @@ public class CollectionManager {
             pst.setLong(8, vehicle.getCapacity());
             pst.setDouble(9, vehicle.getDistanceTravelled());
             pst.setString(10, vehicle.getOwner());
+            pst.setFloat(11, vehicle.getSpeed());
             pst.executeUpdate();
             success = true;
             pst.close(); pst = null;
@@ -136,7 +138,7 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "UPDATE \"vehicles\" SET \"name\"=?, \"vehicleType\"=?, \"x\"=?, \"y\"=?, \"enginePower\"=?, \"capacity\"=?, \"distanceTravelled\"=? WHERE \"id\"=?";
+            String sql = "UPDATE \"vehicles\" SET \"name\"=?, \"vehicleType\"=?, \"x\"=?, \"y\"=?, \"enginePower\"=?, \"capacity\"=?, \"distanceTravelled\"=?, \"speed\"=? WHERE \"id\"=?";
             pst = con.prepareStatement(sql);
             pst.setString(1, vehicle.getName());
             pst.setString(2, vehicle.getTypeAsString());
@@ -145,7 +147,8 @@ public class CollectionManager {
             pst.setFloat(5, vehicle.getEnginePower());
             pst.setLong(6, vehicle.getCapacity());
             pst.setDouble(7, vehicle.getDistanceTravelled());
-            pst.setInt(8, vehicle.getId());
+            pst.setFloat(8, vehicle.getSpeed());
+            pst.setInt(9, id);
             pst.executeUpdate();
             success = true;
             pst.close(); pst = null;
@@ -438,6 +441,7 @@ public class CollectionManager {
             v1.setEnginePower(v2.getEnginePower());
             v1.setCapacity(v2.getCapacity());
             v1.setDistanceTravelled(v2.getDistanceTravelled());
+            v1.setSpeed(v2.getSpeed());
             v1.setType(v2.getType());
             return true;
         }

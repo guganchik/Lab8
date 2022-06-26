@@ -156,7 +156,7 @@ public class MainFrame {
         mi21 = new JMenuItem("command.add_if_max");
         mi21.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                String params[] = {"name", "x", "y", "engine","capacity","distance", "type"};
+                String params[] = {"name", "x", "y", "engine","capacity","distance", "speed", "type"};
                 new ParamsDialog(frame, application.getLocalizedString("command.add_if_max"), "add_if_max", params);
             }
         });
@@ -475,8 +475,8 @@ public class MainFrame {
             y++;
         }
         propertyFields[0].setEnabled(false);
-        propertyFields[7].setEnabled(false);
-        propertyFields[9].setEnabled(false);
+        propertyFields[8].setEnabled(false);
+        propertyFields[10].setEnabled(false);
         
         
         JPanel pane3 = new JPanel();
@@ -509,8 +509,9 @@ public class MainFrame {
                         propertyFields[4].getText(), 
                         propertyFields[5].getText(), 
                         propertyFields[6].getText(), 
-                        propertyFields[8].getText(),
-                        propertyFields[9].getText()
+                        propertyFields[7].getText(), 
+                        propertyFields[9].getText(),
+                        propertyFields[10].getText()
                         
                 )) {
                     clearPropertyFields();

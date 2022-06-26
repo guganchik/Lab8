@@ -32,9 +32,10 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
             data[i][4] = vehicle.getEnginePower();
             data[i][5] = vehicle.getCapacity();
             data[i][6] = vehicle.getDistanceTravelled();
-            data[i][7] = Application.getInstance().getDateFormat().format(vehicle.getCreationDate());
-            data[i][8] = vehicle.getTypeAsString();
-            data[i][9] = vehicle.getOwner();
+            data[i][7] = vehicle.getSpeed();
+            data[i][8] = Application.getInstance().getDateFormat().format(vehicle.getCreationDate());
+            data[i][9] = vehicle.getTypeAsString();
+            data[i][10] = vehicle.getOwner();
             i++;
         }
     }

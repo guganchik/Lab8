@@ -15,6 +15,7 @@ public class VehicleInput {
     private Float enginePower;
     private Long capacity;
     private Double distanceTravelled;
+    private Float speed;
 
     private Scanner input;
     private boolean script;
@@ -100,6 +101,28 @@ public class VehicleInput {
         }
         return true;
     }
+    
+    public boolean speedInput() {
+        boolean stop = false;
+        while (!stop) {
+            if (!script) 
+                System.out.print("Enter speed: ");
+            String line = input.nextLine();
+            try {
+                speed = Float.parseFloat(line);
+                if (speed <= 0) throw new Exception();
+                stop = true;
+            } catch (Exception e) {
+                if (!script) {
+                    System.out.println("Please enter a positive Float number!");
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
 
     public boolean capacityInput() {
         boolean stop = false;
@@ -164,7 +187,7 @@ public class VehicleInput {
     }
 
     public Vehicle createElement(Integer id) {
-        return new Vehicle(id, name, new Coordinates(x, y), enginePower, capacity, distanceTravelled, vehicleType, null);
+        return new Vehicle(id, name, new Coordinates(x, y), enginePower, capacity, distanceTravelled, speed, vehicleType, null);
     }
 
     public Vehicle resultElement(Integer id) {
@@ -174,6 +197,7 @@ public class VehicleInput {
                 && enginePowerInput()
                 && capacityInput()
                 && distanceTravelledInput()
+                && speedInput()
                 && vehicleTypeInput()
                 ) {
             return createElement(id);
