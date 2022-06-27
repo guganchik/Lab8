@@ -20,73 +20,104 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.TreeSet;
 import javax.swing.JPanel;
-import javax.swing.JTable;
 import javax.swing.Timer;
 
 public class MonitorPanel extends JPanel implements MouseListener, MouseMotionListener {
 
-    class VehicleShape {
+    class VehicleEntity {
+        
         Vehicle vehicle;
         Shape shape;
+        boolean hover;
+        boolean selected;
         double r;
         Color color;
-        boolean animating;
         float hue;
+        float saturation;
+        float dsaturation;
         
-        
-        VehicleShape(Vehicle vehicle, Shape shape, Color color, double r) {
+        VehicleEntity(Vehicle vehicle, Shape shape, Color color, double r) {
             this.vehicle = vehicle;
             this.shape = shape;
             this.color = color;
             this.r = r;
         }
+
+        public boolean isHover() {
+            return hover;
+        }
+
+        public void setHover(boolean hover) {
+            this.hover = hover;
+        }
+
+        public boolean isSelected() {
+            return selected;
+        }
+
+        public void setSelected(boolean selected) {
+            this.selected = selected;
+        }
+        
     }
-    
+
+    /** Scale constants */
     public static final float CAPACITY_KOEF = 1f;
     public static final float MIN_SIZE = 5.0f;
     
-    private final float SATURATION = 0.5f;
+    /** Color constants */
+    private final float SELECTED_HUE = 0.0f;
+    private final float HOVER_SATURATION = 0.5f;
     private final float LUMINANCE = 0.9f;
-            
-    private final ArrayList<VehicleShape> shapes;
+    private final float MIN_SATURATION = 0.1f;
+    private final float MAX_SATURATION = 1f;
+    private final float DELTA_SATURATION = 0.05f;
     
+    /** Animation constants */
+    private final int FPS = 60;
+
+    /** Parent frame */
+    MainFrame parent;
+    
+    /** Scale settings for current viewport */
     private Point2D minPoint;
-    
     private double screenK;
     private int screenH;
     private int screenW;
     
-    private boolean ready = false;
     
+    /** HashMap: owner - color */
     private HashMap<String, Color> colors;
     
-    int selected;
+    /** Vehicle entities (data+visualization) */
+    private final ArrayList<VehicleEntity> entities;
     
-    private Timer animator = null;
-    private int animcount = 0;
     
-    Shape shape;
     
-    float hue;
-    float saturation;
-    float luminance;
+    private boolean ready = false;
     
-    boolean inside;
-    
-    MainFrame parent;
     
     public MonitorPanel() {
         this.setBackground(Color.WHITE);
         addMouseListener(this);
         addMouseMotionListener(this);
-        shapes = new ArrayList<>();
+        entities = new ArrayList<>();
         colors = new HashMap<>();
         startAnimation();
-        inside = false;
     }
     
     public void init(MainFrame parent) {
         this.parent = parent;
+    }
+    
+    private void startAnimation() {
+        Timer animator = new Timer(1000/FPS, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                repaint();
+            }
+        });
+        animator.start();
     }
     
     @Override
@@ -99,63 +130,74 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             g2d.drawLine(5, (int)Math.round(getScreenY(0)), screenW+5, (int)Math.round(getScreenY(0)));
             g2d.drawLine((int)Math.round(getScreenX(0)), 5, (int)Math.round(getScreenX(0)), screenH+5);
 
-            for (VehicleShape shape : shapes) {
-                if ((!inside && shape.vehicle.getId()==selected) || shape.animating) {
-                    shape.hue = shape.hue + 0.01f;
-                    Color color = Color.getHSBColor(shape.hue, SATURATION, LUMINANCE);   
+            Color color;
+            VehicleEntity selectedEntity = null;
+            for (VehicleEntity entity : entities) {
+                
+                if (entity.isSelected()) {
+                    selectedEntity = entity;
+                } else if (entity.isHover()) {
+                    entity.hue = entity.hue + 0.01f;
+                    color = Color.getHSBColor(entity.hue, HOVER_SATURATION, LUMINANCE);   
                     g2d.setPaint(color);
                 } else {
-                    g2d.setPaint(shape.color);
+                    g2d.setPaint(entity.color);
                 }
-                g2d.fill(shape.shape);                
+                g2d.fill(entity.shape);                
                 g2d.setColor(Color.BLACK);
-                g2d.draw(shape.shape);
+                g2d.draw(entity.shape);
             }
+            if (selectedEntity != null) {
+                selectedEntity.saturation = selectedEntity.saturation + selectedEntity.dsaturation;
+                if (selectedEntity.saturation > MAX_SATURATION) {
+                    selectedEntity.saturation = MAX_SATURATION;
+                    selectedEntity.dsaturation = -selectedEntity.dsaturation;
+                } else if (selectedEntity.saturation < MIN_SATURATION) {
+                    selectedEntity.saturation = MIN_SATURATION;
+                    selectedEntity.dsaturation = -selectedEntity.dsaturation;
+                }
+                //System.out.println("entity.saturation: " + selectedEntity.saturation);
+                color = Color.getHSBColor(SELECTED_HUE, selectedEntity.saturation, LUMINANCE);   
+                g2d.setPaint(color);
+                g2d.fill(selectedEntity.shape);                
+                g2d.setColor(Color.BLACK);
+                g2d.draw(selectedEntity.shape);
+            }
+            
+            
         }
     }    
     
     public void setSelected(int selected) {
-        this.selected = selected;
-    }
-
-    private void startAnimation() {
-        animator = new Timer(20, new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                repaint();
+        entities.forEach((entity) -> {
+            if (entity.vehicle.getId() == selected) {
+                entity.setSelected(true);
+                entity.saturation = MIN_SATURATION;
+                entity.dsaturation = DELTA_SATURATION;
+            } else {
+                entity.setSelected(false);
             }
         });
-        animator.start();
     }
 
-    private void stopAnimation() {
-        animator.stop();
-    }
 
-    
     @Override
     public void mouseClicked(MouseEvent e) {
-        //System.out.println("Click!");
-        
-        for (int i = 0; i < shapes.size(); i++) {
-            VehicleShape entity = shapes.get(i);
+        for (int i = 0; i < entities.size(); i++) {
+            VehicleEntity entity = entities.get(i);
             if (entity.shape.contains(e.getPoint())) {
                 parent.selectRow(entity.vehicle.getId());
-                        /*
-                shape.animating = true;
-                startAnimation();
-                //System.out.println("Clicked shape " + i);
-                */
             }
         }
     }
     
     @Override
     public void mouseMoved(MouseEvent e) {
-        for (VehicleShape entity : shapes) {
+        for (VehicleEntity entity : entities) {
             if (entity.shape.contains(e.getPoint())) {
-                entity.animating = true;
-            } else if (entity.animating) {
-                entity.animating = false;
+                entity.hover = true;
+            } else if (entity.hover) {
+                entity.hover = false;
             }
         }
     }   
@@ -170,15 +212,10 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
 
     @Override
     public void mouseEntered(MouseEvent e) {
-        inside = true;
-        //startAnimation();
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
-        inside = false;
-        //stopAnimation();
-        //repaint();
     }    
     
     @Override
@@ -200,8 +237,8 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         
         Shape shape = new Ellipse2D.Double(getScreenX(vehicle.getCoordinates().getX())-size, getScreenY(vehicle.getCoordinates().getY())-size, 2*size, 2*size);
 
-        VehicleShape vehicleShape = new VehicleShape(vehicle, shape, color, r);
-        shapes.add(vehicleShape);
+        VehicleEntity vehicleShape = new VehicleEntity(vehicle, shape, color, r);
+        entities.add(vehicleShape);
     }
     
     private double getScreenX(double realX) {
@@ -236,15 +273,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         float b = (float) (random.nextFloat() / 2f + 0.5);      
         Color color = new Color(r, g, b);
         */
-            
         
         return color;
     }
     
     public void setCollection(TreeSet<Vehicle> collection) {
         
-        
-        shapes.clear();
+        entities.clear();
         
         boolean first = true;
 
@@ -318,10 +353,10 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     }
     
     public void checkHole() {
-        for (int i=0; i<shapes.size(); i++) {
-            for (int j=i+1; j<shapes.size(); j++) {
-                VehicleShape iEntity = shapes.get(i);
-                VehicleShape jEntity = shapes.get(j);
+        for (int i=0; i<entities.size(); i++) {
+            for (int j=i+1; j<entities.size(); j++) {
+                VehicleEntity iEntity = entities.get(i);
+                VehicleEntity jEntity = entities.get(j);
                 if (Application.getInstance().getUser().getLogin().equals(iEntity.vehicle.getOwner()) && iEntity.vehicle.getOwner().equals(jEntity.vehicle.getOwner())) {
                     float deltax = iEntity.vehicle.getCoordinates().getX()-jEntity.vehicle.getCoordinates().getX();
                     float deltay = iEntity.vehicle.getCoordinates().getY()-jEntity.vehicle.getCoordinates().getY();
