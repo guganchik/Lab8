@@ -29,18 +29,23 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         Vehicle vehicle;
         Shape shape;
         boolean hover;
-        boolean selected;
         double r;
         Color color;
         float hue;
         float saturation;
         float dsaturation;
         
-        VehicleEntity(Vehicle vehicle, Shape shape, Color color, double r) {
+        private Point2D currentPoint;
+        private Point2D targetPoint;
+        private boolean moving;
+        private long startTime;
+        private double angle;
+        private double stopDistance;
+        
+        
+        VehicleEntity(Vehicle vehicle, Color color) {
             this.vehicle = vehicle;
-            this.shape = shape;
             this.color = color;
-            this.r = r;
         }
 
         public boolean isHover() {
@@ -51,17 +56,69 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             this.hover = hover;
         }
 
-        public boolean isSelected() {
-            return selected;
+        public Point2D getCurrentPoint() {
+            return currentPoint;
         }
 
-        public void setSelected(boolean selected) {
-            this.selected = selected;
+        public void setCurrentPoint(Point2D currentPoint) {
+            this.currentPoint = currentPoint;
+        }
+
+        public Point2D getTargetPoint() {
+            return targetPoint;
+        }
+
+        public void setTargetPoint(Point2D targetPoint) {
+            this.targetPoint = targetPoint;
+        }
+
+        public boolean isMoving() {
+            return moving;
+        }
+
+        public void startMoving(Point2D targetPoint) {
+            
+            vehicle.getCoordinates().setX((float)currentPoint.getX());
+            vehicle.getCoordinates().setY((float)currentPoint.getY());
+            
+            //double degrees = ((Math.atan2(x - vehicle.getCoordinates().getX(), y - vehicle.getCoordinates().getY())+2*Math.PI)*180/ Math.PI)%360;
+            this.targetPoint = targetPoint;
+            double deltaX = targetPoint.getX() - vehicle.getCoordinates().getX();
+            double deltaY = targetPoint.getY() - vehicle.getCoordinates().getY();
+            angle = Math.PI/2 - Math.atan2(deltaX, deltaY);
+            stopDistance = Math.sqrt(deltaX*deltaX+deltaY*deltaY);
+            moving = true;
+            startTime = System.currentTimeMillis();
         }
         
+        public void move() {
+            if (moving) {
+                double time = (System.currentTimeMillis() - startTime) * TIME_SCALE;
+                double distance = vehicle.getSpeed() * time * SPEED_KOEF;
+                if (distance > stopDistance) {
+                    currentPoint = targetPoint;
+                    
+                    moving = false;
+                } else {
+                    currentPoint.setLocation(vehicle.getCoordinates().getX()+distance*Math.cos(angle), vehicle.getCoordinates().getY()+distance*Math.sin(angle));
+                }
+                makeShape();
+            }
+        }
+        
+        
+        public void makeShape() {
+            double r = Math.sqrt(vehicle.getCapacity()/Math.PI);
+            double size = CAPACITY_KOEF*r*screenK;
+            if (size < 5) {
+                size = 5;
+            }
+            shape = new Ellipse2D.Double(getScreenX(currentPoint.getX())-size, getScreenY(currentPoint.getY())-size, 2*size, 2*size);
+        }
     }
 
     /** Scale constants */
+    public static final float SPEED_KOEF = 1f;
     public static final float CAPACITY_KOEF = 1f;
     public static final float MIN_SIZE = 5.0f;
     
@@ -75,6 +132,7 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     
     /** Animation constants */
     private final int FPS = 60;
+    private final float TIME_SCALE = 0.001f;
 
     /** Parent frame */
     MainFrame parent;
@@ -93,11 +151,14 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     private final ArrayList<VehicleEntity> entities;
     
     
+    private VehicleEntity selectedEntity;
+    
     
     private boolean ready = false;
     
     
     public MonitorPanel() {
+        selectedEntity = null;
         this.setBackground(Color.WHITE);
         addMouseListener(this);
         addMouseMotionListener(this);
@@ -131,11 +192,18 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             g2d.drawLine((int)Math.round(getScreenX(0)), 5, (int)Math.round(getScreenX(0)), screenH+5);
 
             Color color;
-            VehicleEntity selectedEntity = null;
             for (VehicleEntity entity : entities) {
+                entity.move();
+                /**
+                if (entity.isMoving()) {
+                    Point2D point = entity.getCurrentPoint();
+                    point.setLocation(point.getX()+0.1f, point.getY()+0.1f);
+                    entity.makeShape();
+                }
+                */
                 
-                if (entity.isSelected()) {
-                    selectedEntity = entity;
+                if (entity == selectedEntity) {
+                    //System.out.println("Selected");
                 } else if (entity.isHover()) {
                     entity.hue = entity.hue + 0.01f;
                     color = Color.getHSBColor(entity.hue, HOVER_SATURATION, LUMINANCE);   
@@ -169,25 +237,30 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     }    
     
     public void setSelected(int selected) {
-        entities.forEach((entity) -> {
+        for (VehicleEntity entity : entities) {
             if (entity.vehicle.getId() == selected) {
-                entity.setSelected(true);
+                selectedEntity = entity;
                 entity.saturation = MIN_SATURATION;
                 entity.dsaturation = DELTA_SATURATION;
-            } else {
-                entity.setSelected(false);
             }
-        });
+        };
     }
 
 
     @Override
     public void mouseClicked(MouseEvent e) {
+        boolean space = true;
         for (int i = 0; i < entities.size(); i++) {
             VehicleEntity entity = entities.get(i);
             if (entity.shape.contains(e.getPoint())) {
+                space = false;
                 parent.selectRow(entity.vehicle.getId());
             }
+        }
+        if (space) {
+            selectedEntity.startMoving(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+            //selectedEntity.setCurrentPoint(new Point.Double(selectedEntity.vehicle.getCoordinates().getX(), selectedEntity.vehicle.getCoordinates().getY()));
+            //entity.setTargetPoint();
         }
     }
     
@@ -228,17 +301,18 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             color = getRandomColor();
             colors.put(vehicle.getOwner(), color);
         }
-        
-        double r = Math.sqrt(vehicle.getCapacity()/Math.PI);
-        double size = CAPACITY_KOEF*r*screenK;
-        if (size < 5) {
-            size = 5;
-        }
-        
-        Shape shape = new Ellipse2D.Double(getScreenX(vehicle.getCoordinates().getX())-size, getScreenY(vehicle.getCoordinates().getY())-size, 2*size, 2*size);
+        VehicleEntity entity = new VehicleEntity(vehicle, color);
+        entity.setCurrentPoint(new Point.Double(entity.vehicle.getCoordinates().getX(), entity.vehicle.getCoordinates().getY()));
+        entity.makeShape();
+        entities.add(entity);
+    }
 
-        VehicleEntity vehicleShape = new VehicleEntity(vehicle, shape, color, r);
-        entities.add(vehicleShape);
+    private double getRealX(double screenX) {
+        return minPoint.getX() + (screenX - 5)/screenK;
+    }
+
+    private double getRealY(double screenY) {
+        return minPoint.getY() + (screenH - screenY + 5)/screenK;
     }
     
     private double getScreenX(double realX) {
@@ -332,16 +406,16 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         
         screenK = kx>ky?ky:kx;
         
-        //System.out.println("screenK: " + screenK);
+        System.out.println("screenK: " + screenK);
         
         minPoint = new Point.Double(
                 (minX+(maxX-minX)/2-(this.getSize().width-10)/screenK/2), 
                 (minY+(maxY-minY)/2-(this.getSize().height-10)/screenK/2)
         ); 
         
-        //System.out.println("minPoint: " + minPoint);
+        System.out.println("minPoint: " + minPoint);
         
-        //System.out.println("["+getScreenX(0)+";"+getScreenY(0)+"]");
+        System.out.println("["+getScreenX(0)+";"+getScreenY(0)+"]");
         
         for(Vehicle vehicle: collection) {
             processVehicle(vehicle);
