@@ -1,5 +1,7 @@
 package frame;
 
+import anim.MoveOperation;
+import anim.StopOperation;
 import app.Application;
 import collections.User;
 import collections.Vehicle;
@@ -628,6 +630,32 @@ public class MainFrame {
             monitorPanel.checkHole();
         }
     }
+    
+    public void animateMove(MoveOperation moveOperation) {
+        monitorPanel.animateMove(moveOperation);
+        tableModel.update(moveOperation.getVehicleId(), (float)moveOperation.getStartPoint().getX(), (float)moveOperation.getStartPoint().getY());
+        System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
+        int selectedId = 0;
+        if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
+            selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
+        }        
+        tableModel.fireTableDataChanged();
+        selectRow(selectedId);
+    }
+    
+    public void animateStop(StopOperation stopOperation) {
+        monitorPanel.animateStop(stopOperation);
+        tableModel.update(stopOperation.getVehicleId(), (float)stopOperation.getTargetPoint().getX(), (float)stopOperation.getTargetPoint().getY());
+        System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
+        int selectedId = 0;
+        if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
+            selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
+        }        
+        tableModel.fireTableDataChanged();
+        selectRow(selectedId);
+    }
+    
+    
     
     public void sortTable() {
         List<SortKey> sortKeys = new ArrayList<SortKey>();

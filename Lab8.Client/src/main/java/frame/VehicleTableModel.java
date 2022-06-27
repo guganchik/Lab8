@@ -19,9 +19,6 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
     private Object[][] data = new Object[0][Application.COLUMNS.length];
 
     public void setData(Set<Vehicle> collection) {
-        
-        
-        
         data = new Object[collection.size()][Application.COLUMNS.length];
         int i = 0;
         for(Vehicle vehicle: collection) {
@@ -81,6 +78,17 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
             return new Object();
         }
     }
+    
+    public void update(int id, float x, float y) {
+        for (int i=0; i<data.length; i++) {
+            if ((int)data[i][0] == id) {
+                data[i][2] = x;
+                data[i][3] = y;
+            }
+        }
+    }
+    
+    
 }
     
     

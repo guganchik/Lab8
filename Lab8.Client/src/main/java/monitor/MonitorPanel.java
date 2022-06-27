@@ -1,5 +1,7 @@
 package monitor;
 
+import anim.MoveOperation;
+import anim.StopOperation;
 import app.Application;
 import collections.Vehicle;
 import frame.MainFrame;
@@ -76,15 +78,11 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             return moving;
         }
 
-        public void startMoving(Point2D targetPoint) {
-            
-            vehicle.getCoordinates().setX((float)currentPoint.getX());
-            vehicle.getCoordinates().setY((float)currentPoint.getY());
-            
-            //double degrees = ((Math.atan2(x - vehicle.getCoordinates().getX(), y - vehicle.getCoordinates().getY())+2*Math.PI)*180/ Math.PI)%360;
+        public void startMoving(Point2D startPoint, Point2D targetPoint) {
+            this.currentPoint = startPoint;
             this.targetPoint = targetPoint;
-            double deltaX = targetPoint.getX() - vehicle.getCoordinates().getX();
-            double deltaY = targetPoint.getY() - vehicle.getCoordinates().getY();
+            double deltaX = targetPoint.getX() - currentPoint.getX();
+            double deltaY = targetPoint.getY() - currentPoint.getY();
             angle = Math.PI/2 - Math.atan2(deltaX, deltaY);
             stopDistance = Math.sqrt(deltaX*deltaX+deltaY*deltaY);
             moving = true;
@@ -97,15 +95,15 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                 double distance = vehicle.getSpeed() * time * SPEED_KOEF;
                 if (distance > stopDistance) {
                     currentPoint = targetPoint;
-                    
                     moving = false;
+                    StopOperation stopOperation = StopOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getTargetPoint());
+                    Application.getInstance().animateStop(stopOperation);
                 } else {
                     currentPoint.setLocation(vehicle.getCoordinates().getX()+distance*Math.cos(angle), vehicle.getCoordinates().getY()+distance*Math.sin(angle));
                 }
                 makeShape();
             }
         }
-        
         
         public void makeShape() {
             double r = Math.sqrt(vehicle.getCapacity()/Math.PI);
@@ -150,12 +148,9 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     /** Vehicle entities (data+visualization) */
     private final ArrayList<VehicleEntity> entities;
     
-    
     private VehicleEntity selectedEntity;
     
-    
     private boolean ready = false;
-    
     
     public MonitorPanel() {
         selectedEntity = null;
@@ -235,6 +230,16 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             
         }
     }    
+
+
+    private VehicleEntity getEntityById(int id) {
+        for (VehicleEntity entity : entities) {
+            if (entity.vehicle.getId() == id) {
+                return entity;
+            }
+        };
+        return null;
+    }
     
     public void setSelected(int selected) {
         for (VehicleEntity entity : entities) {
@@ -257,8 +262,10 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                 parent.selectRow(entity.vehicle.getId());
             }
         }
-        if (space) {
-            selectedEntity.startMoving(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+        if (selectedEntity!= null && space) {
+            MoveOperation moveOperation = MoveOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getCurrentPoint(), new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+            Application.getInstance().animateMove(moveOperation);
+            //selectedEntity.startMoving(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
             //selectedEntity.setCurrentPoint(new Point.Double(selectedEntity.vehicle.getCoordinates().getX(), selectedEntity.vehicle.getCoordinates().getY()));
             //entity.setTargetPoint();
         }
@@ -406,16 +413,16 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         
         screenK = kx>ky?ky:kx;
         
-        System.out.println("screenK: " + screenK);
+        //System.out.println("screenK: " + screenK);
         
         minPoint = new Point.Double(
                 (minX+(maxX-minX)/2-(this.getSize().width-10)/screenK/2), 
                 (minY+(maxY-minY)/2-(this.getSize().height-10)/screenK/2)
         ); 
         
-        System.out.println("minPoint: " + minPoint);
+        //System.out.println("minPoint: " + minPoint);
         
-        System.out.println("["+getScreenX(0)+";"+getScreenY(0)+"]");
+        //System.out.println("["+getScreenX(0)+";"+getScreenY(0)+"]");
         
         for(Vehicle vehicle: collection) {
             processVehicle(vehicle);
@@ -440,6 +447,23 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                     }
                 }
             }
+        }
+    }
+    
+    public void animateMove(MoveOperation moveOperation) {
+        VehicleEntity entity = getEntityById(moveOperation.getVehicleId());
+        if (entity != null) {
+            entity.vehicle.getCoordinates().setX((float)moveOperation.getStartPoint().getX());
+            entity.vehicle.getCoordinates().setY((float)moveOperation.getStartPoint().getY());
+            entity.startMoving(moveOperation.getStartPoint(), moveOperation.getTargetPoint());
+        }
+    }
+    
+    public void animateStop(StopOperation stopOperation) {
+        VehicleEntity entity = getEntityById(stopOperation.getVehicleId());
+        if (entity != null) {
+            entity.vehicle.getCoordinates().setX((float)stopOperation.getTargetPoint().getX());
+            entity.vehicle.getCoordinates().setY((float)stopOperation.getTargetPoint().getY());
         }
     }
 

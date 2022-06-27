@@ -24,7 +24,6 @@ public class CollectionManager {
     private final TreeSet<Vehicle> collection;
     static Date collectionDate = new Date();
     //public static final Calendar tzUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC")); 
-
     public CollectionManager() {
         collection = new TreeSet();
         readCollectionFromDB();
@@ -468,5 +467,16 @@ public class CollectionManager {
         return true;
     }
 
-    
+    public synchronized boolean updateElementXY(int id, float x, float y, String owner) {
+        Vehicle avehicle = getById(id);
+        if (avehicle == null || !avehicle.getOwner().equals(owner)) {
+            return false;
+        }
+        avehicle.getCoordinates().setX(x);
+        avehicle.getCoordinates().setY(y);
+        if (updateVehicleInDB(avehicle.getId(), avehicle)) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -1,5 +1,7 @@
 package app;
 
+import anim.MoveOperation;
+import anim.StopOperation;
 import collections.User;
 import collections.Vehicle;
 import common.InputCheck;
@@ -195,6 +197,20 @@ public class Application implements Observer {
         return true;
     }
     
+    public boolean animateMove(MoveOperation moveOperation) {
+        Request request;
+        request = new Request("move", null, moveOperation, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
+    
+    public boolean animateStop(StopOperation stopOperation) {
+        Request request;
+        request = new Request("stop", null, stopOperation, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
+    
     public boolean sendCommand(String command, String[] args, boolean confirm) {
         int result;
         if (command.equals("info")) {
@@ -323,11 +339,14 @@ public class Application implements Observer {
                     mainFrame.updateCollection(collection);
                 } else if (response.getCommand().equals("max_by_id")) {
                     if (response.getObject() != null) {
-                        Vehicle vehicle = (Vehicle)response.getObject();
                         showVehicleInfoDialog((Vehicle)response.getObject());
                     }
                 } else if (response.getCommand().equals("info")) {
                     showCollectionInfoDialog((CollectionInfo)response.getObject());
+                } else if (response.getCommand().equals("move")) {
+                    mainFrame.animateMove((MoveOperation)response.getObject());
+                } else if (response.getCommand().equals("stop")) {
+                    mainFrame.animateStop((StopOperation)response.getObject());
                 }
             } else {
                 showErrorDialog(response.getResult());
