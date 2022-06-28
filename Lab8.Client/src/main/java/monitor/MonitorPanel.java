@@ -490,22 +490,22 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     }
 
 
-    public void checkHole() {
+    public boolean checkHole() {
         for (int i=0; i<entities.size(); i++) {
             for (int j=i+1; j<entities.size(); j++) {
                 VehicleEntity iEntity = entities.get(i);
                 VehicleEntity jEntity = entities.get(j);
-                if (Application.getInstance().getUser().getLogin().equals(iEntity.vehicle.getOwner()) && iEntity.vehicle.getOwner().equals(jEntity.vehicle.getOwner())) {
-                    float deltax = iEntity.vehicle.getCoordinates().getX()-jEntity.vehicle.getCoordinates().getX();
-                    float deltay = iEntity.vehicle.getCoordinates().getY()-jEntity.vehicle.getCoordinates().getY();
-                    double distance = Math.sqrt(deltax*deltax + deltay*deltay);
-                    if (distance < (iEntity.r + jEntity.r)) {
-                        EatOperation eatOperation = EatOperation.of(iEntity.vehicle.getId(), iEntity.vehicle.getCapacity(), jEntity.vehicle.getId(), jEntity.vehicle.getCapacity());
-                        Application.getInstance().animateEat(eatOperation);
-                    }
+                float deltax = iEntity.vehicle.getCoordinates().getX()-jEntity.vehicle.getCoordinates().getX();
+                float deltay = iEntity.vehicle.getCoordinates().getY()-jEntity.vehicle.getCoordinates().getY();
+                double distance = Math.sqrt(deltax*deltax + deltay*deltay);
+                if (distance < (iEntity.r + jEntity.r)) {
+                    EatOperation eatOperation = EatOperation.of(iEntity.vehicle.getId(), iEntity.vehicle.getCapacity(), jEntity.vehicle.getId(), jEntity.vehicle.getCapacity());
+                    Application.getInstance().animateEat(eatOperation);
+                    return true;
                 }
             }
         }
+        return false;
     }
     
     public void animateMove(MoveOperation moveOperation) {

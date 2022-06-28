@@ -705,6 +705,9 @@ public class MainFrame {
             tableModel.deleteRow(eatOperation.getVehicle2Id());
         }
         selectRow(selectedId);
+        if (isHoleMode()) {
+            monitorPanel.checkHole();
+        }
     }
 
     

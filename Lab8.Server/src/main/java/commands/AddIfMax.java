@@ -35,7 +35,7 @@ public class AddIfMax implements ICommand {
             if (collectionManager.addIfMax(vehicle)) {
                 return new Response(request.getCommand(), Const.SUCCESS, collectionManager.getCollection(), true);
             } else {
-                return new Response(request.getCommand(), Const.ERROR);
+                return new Response("null", Const.SUCCESS, null, false);
             }
         }
     }
