@@ -28,7 +28,7 @@ public class Stop implements ICommand{
         }
         StopOperation operation = (StopOperation)request.getObject();
         
-        System.out.print("Stop ");
+        //System.out.print("Stop ");
         if (collectionManager.updateElementXY(operation.getVehicleId(), (float)operation.getTargetPoint().getX(), (float)operation.getTargetPoint().getY(), user.getLogin())) {
             return new Response(request.getCommand(), Const.SUCCESS, operation, true);
         } else {

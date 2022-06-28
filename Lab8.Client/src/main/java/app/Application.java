@@ -53,16 +53,13 @@ public class Application implements Observer {
     
     public static String[] COLUMNS = new String[] {"id", "name", "x", "y", "engine", "capacity", "distance", "speed", "date", "type", "owner"};
     
-    
-    private int mode;
-    
     private LoginFrame loginFrame;
     private RegisterFrame registerFrame;
     private MainFrame mainFrame;
     
     private NetworkProvider networkProvider;
 
-    private TreeSet<Vehicle> collection;
+    //private TreeSet<Vehicle> collection;
     
 
     public Application() {
@@ -299,9 +296,11 @@ public class Application implements Observer {
     }
     
     
+    /**
     public TreeSet<Vehicle> getCollection() {
         return collection;
     }
+    */
     
     public void showErrorDialog(int code) {
         JOptionPane.showMessageDialog(new JFrame(), getLocalizedString("error.code." + code), getLocalizedString("error"),
@@ -336,14 +335,17 @@ public class Application implements Observer {
                         response.getCommand().equals("clear") || 
                         response.getCommand().equals("remove_greater") || 
                         response.getCommand().equals("remove_lower") ||
-                        response.getCommand().equals("add_if_max")
+                        response.getCommand().equals("add_if_max") ||
+                        response.getCommand().equals("add")
                         ) {
-                    collection = (TreeSet<Vehicle>)response.getObject();
+                    TreeSet<Vehicle> collection = (TreeSet<Vehicle>)response.getObject();
                     mainFrame.updateCollection(collection);
+                    /**
                 } else if (response.getCommand().equals("add")) {
-                    Vehicle vehicle = (Vehicle)response.getObject();
-                    collection.add(vehicle);
+                    //Vehicle vehicle = (Vehicle)response.getObject();
+                    //collection.add(vehicle);
                     mainFrame.updateCollection(collection);
+                    */
                 } else if (response.getCommand().equals("max_by_id")) {
                     if (response.getObject() != null) {
                         showVehicleInfoDialog((Vehicle)response.getObject());
@@ -410,9 +412,4 @@ public class Application implements Observer {
             }
         }
     }
-    
-    public void setMode(int mode) {
-        this.mode = mode;
-    }
-    
 }

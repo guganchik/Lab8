@@ -34,7 +34,7 @@ public class Add implements ICommand{
             Vehicle vehicle = (Vehicle) request.getObject();
             vehicle.setOwner(user.getLogin());
             if (collectionManager.add(vehicle)) {
-                return new Response(request.getCommand(), Const.SUCCESS, vehicle, true);
+                return new Response(request.getCommand(), Const.SUCCESS, collectionManager.getCollection(), true);
             } else {
                 return new Response(request.getCommand(), Const.ERROR);
             }

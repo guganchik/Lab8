@@ -27,7 +27,7 @@ public class Eat implements ICommand{
         }
         EatOperation operation = (EatOperation)request.getObject();
         
-        System.out.print("Eat ");
+        //System.out.print("Eat ");
         
         int updateId = -1;
         int deleteId = -1;

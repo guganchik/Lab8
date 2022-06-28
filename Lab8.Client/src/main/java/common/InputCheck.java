@@ -81,7 +81,7 @@ public class InputCheck {
     public static int checkSpeed(String input) {
         try {
             float param = Float.parseFloat(input);
-            if (param <= 0) throw new Exception();
+            if ((param <= 0) || (param > 50)) throw new Exception();
             return Const.SUCCESS;
         } catch (Exception e) {
             return Const.ERROR_108;

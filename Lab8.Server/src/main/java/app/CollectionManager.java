@@ -156,7 +156,7 @@ public class CollectionManager {
             pst.executeUpdate();
             success = true;
             
-            System.out.println("Update vehile in DB id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
+            //System.out.println("Update vehile in DB id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
             
             pst.close(); pst = null;
             con.close(); con = null;
@@ -311,19 +311,25 @@ public class CollectionManager {
      * Добавить элемент в коллекцию если  его EnginePower и Capacity больше максимального значения данных полей в этой коллекции
      */
     public synchronized boolean addIfMax(Vehicle element) {
+        boolean add = true;
         Iterator<Vehicle> itr = collection.iterator();
         while (itr.hasNext()) {
             Vehicle v = itr.next();
             if (v.getEnginePower() > element.getEnginePower() || v.getCapacity() > element.getCapacity()) {
+                add = false;
                 break;
             } else if(v.getEnginePower() < element.getEnginePower() && v.getCapacity() < element.getCapacity() && !itr.hasNext()) {
                if (insertVehicleToDB(element)) {
                    collection.add(element);
-                   return true;
+                   add = true;
                } else {
-                   return false;
+                   add = false;
                }
             }
+        }
+        if (add && insertVehicleToDB(element)) {
+            collection.add(element);
+            return true;
         }
         return false;
     }
@@ -505,7 +511,7 @@ public class CollectionManager {
         //System.out.println("Collection size: " + collection.size());
         if (deleteVehicle != null) {
             collection.remove(deleteVehicle);
-            System.out.println("Collection size: " + collection.size());
+            //System.out.println("Collection size: " + collection.size());
             processingExecutor.execute(() -> {
                 deleteByIdFromDB(deleteVehicle.getId(), null);
             });

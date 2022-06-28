@@ -27,7 +27,7 @@ public class Move implements ICommand{
         }
         MoveOperation operation = (MoveOperation)request.getObject();
         
-        System.out.print("Move ");
+        //System.out.print("Move ");
         if (collectionManager.updateElementXY(operation.getVehicleId(), (float)operation.getStartPoint().getX(), (float)operation.getStartPoint().getY(), user.getLogin())) {
             return new Response(request.getCommand(), Const.SUCCESS, operation, true);
         } else {

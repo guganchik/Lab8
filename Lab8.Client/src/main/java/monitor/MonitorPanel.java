@@ -38,6 +38,7 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         float saturation;
         float dsaturation;
         
+        
         private Point2D currentPoint;
         private Point2D targetPoint;
         private boolean moving;
@@ -47,11 +48,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         
         private boolean master = false;
         
+        private boolean selected;
         
         VehicleEntity(Vehicle vehicle, Color color) {
             this.vehicle = vehicle;
             this.color = color;
             this.moving = false;
+            this.selected = false;
         }
 
         public boolean isHover() {
@@ -82,10 +85,18 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             return moving;
         }
 
+        public boolean isSelected() {
+            return selected;
+        }
+
+        public void setSelected(boolean selected) {
+            this.selected = selected;
+        }
+
         public void startMoving(Point2D startPoint, Point2D targetPoint) {
             if ((this.targetPoint.getX() == targetPoint.getX()) && (this.targetPoint.getY() == targetPoint.getY())) {
                 master = true;
-                System.out.println("Master: " + master);
+                //System.out.println("Master: " + master);
             } else {
                 master = false;
             }
@@ -107,13 +118,12 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                     currentPoint = targetPoint;
                     moving = false;
                     if (master) {
-                        StopOperation stopOperation = StopOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getTargetPoint());
+                        StopOperation stopOperation = StopOperation.of(vehicle.getId(), getTargetPoint());
                         Application.getInstance().animateStop(stopOperation);
                     }
                 } else {
-                    
                     currentPoint.setLocation(vehicle.getCoordinates().getX()+distance*Math.cos(angle), vehicle.getCoordinates().getY()+distance*Math.sin(angle));
-                    if (master) {
+                    if (parent.isHoleMode() && master) {
                         synchronized (entities) {
                             for (int i=0; i<entities.size(); i++) {
                                 VehicleEntity entity = entities.get(i);
@@ -122,7 +132,7 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                                     double deltay = currentPoint.getY()-entity.getCurrentPoint().getY();
                                     double delta = Math.sqrt(deltax*deltax + deltay*deltay);
                                     if (delta < (this.r + entity.r)) {
-                                        System.out.println("Intersection!");
+                                        //System.out.println("Intersection!");
                                         EatOperation eatOperation = EatOperation.of(vehicle.getId(), vehicle.getCapacity(), entity.vehicle.getId(), entity.vehicle.getCapacity());
                                         Application.getInstance().animateEat(eatOperation);
                                     }
@@ -178,12 +188,12 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     /** Vehicle entities (data+visualization) */
     private final ArrayList<VehicleEntity> entities;
     
-    private VehicleEntity selectedEntity;
+    //private VehicleEntity selectedEntity;
     
     private boolean ready = false;
     
     public MonitorPanel() {
-        selectedEntity = null;
+        //selectedEntity = null;
         this.setBackground(Color.WHITE);
         addMouseListener(this);
         addMouseMotionListener(this);
@@ -218,10 +228,11 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
 
             Color color;
             synchronized (entities) {
+                VehicleEntity selectedEntity = null;
                 for (VehicleEntity entity : entities) {
                     entity.move();
-                    if (entity == selectedEntity) {
-                        //System.out.println("Selected");
+                    if (entity.isSelected()) {
+                        selectedEntity = entity;
                     } else if (entity.isHover()) {
                         entity.hue = entity.hue + 0.01f;
                         color = Color.getHSBColor(entity.hue, HOVER_SATURATION, LUMINANCE);   
@@ -233,25 +244,22 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                     g2d.setColor(Color.BLACK);
                     g2d.draw(entity.shape);
                 }
-            }
-            if (selectedEntity != null) {
-                selectedEntity.saturation = selectedEntity.saturation + selectedEntity.dsaturation;
-                if (selectedEntity.saturation > MAX_SATURATION) {
-                    selectedEntity.saturation = MAX_SATURATION;
-                    selectedEntity.dsaturation = -selectedEntity.dsaturation;
-                } else if (selectedEntity.saturation < MIN_SATURATION) {
-                    selectedEntity.saturation = MIN_SATURATION;
-                    selectedEntity.dsaturation = -selectedEntity.dsaturation;
+                if (selectedEntity != null) {
+                    selectedEntity.saturation = selectedEntity.saturation + selectedEntity.dsaturation;
+                    if (selectedEntity.saturation > MAX_SATURATION) {
+                        selectedEntity.saturation = MAX_SATURATION;
+                        selectedEntity.dsaturation = -selectedEntity.dsaturation;
+                    } else if (selectedEntity.saturation < MIN_SATURATION) {
+                        selectedEntity.saturation = MIN_SATURATION;
+                        selectedEntity.dsaturation = -selectedEntity.dsaturation;
+                    }
+                    color = Color.getHSBColor(SELECTED_HUE, selectedEntity.saturation, LUMINANCE);   
+                    g2d.setPaint(color);
+                    g2d.fill(selectedEntity.shape);                
+                    g2d.setColor(Color.BLACK);
+                    g2d.draw(selectedEntity.shape);
                 }
-                //System.out.println("entity.saturation: " + selectedEntity.saturation);
-                color = Color.getHSBColor(SELECTED_HUE, selectedEntity.saturation, LUMINANCE);   
-                g2d.setPaint(color);
-                g2d.fill(selectedEntity.shape);                
-                g2d.setColor(Color.BLACK);
-                g2d.draw(selectedEntity.shape);
             }
-            
-            
         }
     }    
 
@@ -271,9 +279,11 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         synchronized (entities) {        
             for (VehicleEntity entity : entities) {
                 if (entity.vehicle.getId() == selected) {
-                    selectedEntity = entity;
+                    entity.setSelected(true);
                     entity.saturation = MIN_SATURATION;
                     entity.dsaturation = DELTA_SATURATION;
+                } else {
+                    entity.setSelected(false);
                 }
             };
         }
@@ -284,21 +294,22 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     public void mouseClicked(MouseEvent e) {
         boolean space = true;
         synchronized (entities) {
+            VehicleEntity selectedEntity = null;
             for (int i = 0; i < entities.size(); i++) {
                 VehicleEntity entity = entities.get(i);
+                if (entity.isSelected()) {
+                    selectedEntity = entity; 
+                }
                 if (entity.shape.contains(e.getPoint())) {
                     space = false;
                     parent.selectRow(entity.vehicle.getId());
                 }
             }
-        }
-        if (selectedEntity!= null && space) {
-            selectedEntity.setTargetPoint(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
-            MoveOperation moveOperation = MoveOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getCurrentPoint(), selectedEntity.getTargetPoint());
-            Application.getInstance().animateMove(moveOperation);
-            //selectedEntity.startMoving(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
-            //selectedEntity.setCurrentPoint(new Point.Double(selectedEntity.vehicle.getCoordinates().getX(), selectedEntity.vehicle.getCoordinates().getY()));
-            //entity.setTargetPoint();
+            if (selectedEntity!= null && space) {
+                selectedEntity.setTargetPoint(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+                MoveOperation moveOperation = MoveOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getCurrentPoint(), selectedEntity.getTargetPoint());
+                Application.getInstance().animateMove(moveOperation);
+            }
         }
     }
     
@@ -395,7 +406,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     }
     
     public void setCollection(TreeSet<Vehicle> collection) {
-        selectedEntity = null;
+        /**
+        if (selectedEntity != null) {
+            synchronized (selectedEntity) {
+                selectedEntity = null;
+            }
+        }
+        */
         
         synchronized (entities) {
             entities.clear();
@@ -483,13 +500,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                     float deltay = iEntity.vehicle.getCoordinates().getY()-jEntity.vehicle.getCoordinates().getY();
                     double distance = Math.sqrt(deltax*deltax + deltay*deltay);
                     if (distance < (iEntity.r + jEntity.r)) {
-                        Application.getInstance().eatVehicle(iEntity.vehicle.getId(), jEntity.vehicle.getId());
+                        EatOperation eatOperation = EatOperation.of(iEntity.vehicle.getId(), iEntity.vehicle.getCapacity(), jEntity.vehicle.getId(), jEntity.vehicle.getCapacity());
+                        Application.getInstance().animateEat(eatOperation);
                     }
                 }
             }
         }
     }
-
     
     public void animateMove(MoveOperation moveOperation) {
         VehicleEntity entity = getEntityById(moveOperation.getVehicleId());
@@ -529,9 +546,6 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                 }
             }
             if (deleteEntity != null) {
-                if (selectedEntity == deleteEntity) {
-                    selectedEntity = null;
-                }
                 entities.remove(deleteEntity);
             }
         }

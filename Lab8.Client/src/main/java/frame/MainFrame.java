@@ -20,6 +20,7 @@ import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.PatternSyntaxException;
@@ -99,6 +100,7 @@ public class MainFrame {
     
     MonitorPanel monitorPanel;
     
+    JButton randomButton;
     JButton createButton;
     JButton saveButton;
     JButton deleteButton;
@@ -267,8 +269,9 @@ public class MainFrame {
         modeCombo = new JComboBox<String>(modeModel);
         modeCombo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                int idx = modeModel.getIndexOf(modeCombo.getSelectedItem()); 
-                application.setMode(idx);
+                if (isHoleMode()) {
+                    monitorPanel.checkHole();
+                }
             }
         });
         pane2.add(modeCombo);
@@ -488,6 +491,33 @@ public class MainFrame {
         constraints1.fill = GridBagConstraints.HORIZONTAL;
         constraints1.gridy = 0;
         constraints1.insets = new Insets(0,15,0,0);    
+
+        randomButton = new JButton("main.random");
+        randomButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Random random = new Random();
+                if (Application.getInstance().saveVehicle(
+                        "",
+                        "object_" + random.nextInt(), 
+                        "" + (random.nextFloat()*40-20), 
+                        "" + (random.nextFloat()*40-20), 
+                        "" + (random.nextFloat()*100), 
+                        "" + (long)(5+random.nextFloat()*15), 
+                        "" + random.nextDouble()*100, 
+                        "" + (5+random.nextFloat()*30), 
+                        "SHIP",
+                        ""
+                )) {
+                    clearPropertyFields();
+                    table.getSelectionModel().clearSelection();
+                }
+            }
+        });
+        randomButton.setFont(font);
+        randomButton.setPreferredSize(new Dimension(140,40));
+        constraints1.gridx = 0;
+        pane3.add(randomButton, constraints1);
+
         
         createButton = new JButton("main.create");
         createButton.addActionListener(new ActionListener() {
@@ -497,8 +527,8 @@ public class MainFrame {
             }
         });
         createButton.setFont(font);
-        createButton.setPreferredSize(new Dimension(200,40));
-        constraints1.gridx = 0;
+        createButton.setPreferredSize(new Dimension(140,40));
+        constraints1.gridx = 1;
         pane3.add(createButton, constraints1);
         
         saveButton = new JButton("main.save");
@@ -523,8 +553,8 @@ public class MainFrame {
             }
         });
         saveButton.setFont(font);
-        saveButton.setPreferredSize(new Dimension(200,40));
-        constraints1.gridx = 1;
+        saveButton.setPreferredSize(new Dimension(140,40));
+        constraints1.gridx = 2;
         pane3.add(saveButton, constraints1);
         
         deleteButton = new JButton("main.delete");
@@ -532,7 +562,7 @@ public class MainFrame {
             public void actionPerformed(ActionEvent e) {
                 if (Application.getInstance().deleteVehicle(
                         propertyFields[0].getText(),
-                        propertyFields[9].getText()
+                        propertyFields[10].getText()
                 )) {
                     clearPropertyFields();
                     table.getSelectionModel().clearSelection();
@@ -540,8 +570,8 @@ public class MainFrame {
             }
         });
         deleteButton.setFont(font);
-        deleteButton.setPreferredSize(new Dimension(200,40));
-        constraints1.gridx = 2;
+        deleteButton.setPreferredSize(new Dimension(140,40));
+        constraints1.gridx = 3;
         pane3.add(deleteButton, constraints1);
         
         constraints.insets = new Insets(10,0,0,0); 
@@ -626,10 +656,13 @@ public class MainFrame {
         tableModel.setData(collection);
         tableModel.fireTableDataChanged();
         monitorPanel.setCollection(collection);
-        int idx = modeModel.getIndexOf(modeCombo.getSelectedItem()); 
-        if (idx == 1) {
+        if (isHoleMode()) {
             monitorPanel.checkHole();
         }
+    }
+    
+    public boolean isHoleMode() {
+        return modeModel.getIndexOf(modeCombo.getSelectedItem()) == 1; 
     }
     
     public void animateMove(MoveOperation moveOperation) {
@@ -727,7 +760,8 @@ public class MainFrame {
         //valueLabel.setText(application.getLocalizedString("main.value"));
         visualizationLabel.setText(application.getLocalizedString("main.graphics"));
         propertiesLabel.setText(application.getLocalizedString("main.properties"));
-        
+
+        randomButton.setText(application.getLocalizedString("main.random"));
         createButton.setText(application.getLocalizedString("main.create"));
         saveButton.setText(application.getLocalizedString("main.save"));
         deleteButton.setText(application.getLocalizedString("main.delete"));
