@@ -2,38 +2,41 @@ package frame;
 
 import app.Application;
 import collections.Vehicle;
-import java.text.DateFormat;
-import java.util.Locale;
+import java.util.ArrayList;
 import java.util.Set;
-import java.util.Date;
-import java.util.TreeSet;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
 public class VehicleTableModel extends AbstractTableModel/** implements TableModelListener*/ {
     
     // TableModel's column names
-    private final String[] columnNames = Application.COLUMNS;
+    private final ArrayList<String> columnNames = new ArrayList(Application.COLUMNS.length);
 
     // TableModel's data
-    private Object[][] data = new Object[0][Application.COLUMNS.length];
+    private ArrayList<Object[]> data = new ArrayList();
 
+    public VehicleTableModel() {
+        for(String column: Application.COLUMNS) {
+            columnNames.add(column);
+        }
+    }
+    
     public void setData(Set<Vehicle> collection) {
-        data = new Object[collection.size()][Application.COLUMNS.length];
-        int i = 0;
+        data.clear();
+        Object[] row;
         for(Vehicle vehicle: collection) {
-            data[i][0] = vehicle.getId();
-            data[i][1] = vehicle.getName();
-            data[i][2] = vehicle.getCoordinates().getX();
-            data[i][3] = vehicle.getCoordinates().getY();
-            data[i][4] = vehicle.getEnginePower();
-            data[i][5] = vehicle.getCapacity();
-            data[i][6] = vehicle.getDistanceTravelled();
-            data[i][7] = vehicle.getSpeed();
-            data[i][8] = Application.getInstance().getDateFormat().format(vehicle.getCreationDate());
-            data[i][9] = vehicle.getTypeAsString();
-            data[i][10] = vehicle.getOwner();
-            i++;
+            row = new Object[Application.COLUMNS.length];
+            row[0] = vehicle.getId();
+            row[1] = vehicle.getName();
+            row[2] = vehicle.getCoordinates().getX();
+            row[3] = vehicle.getCoordinates().getY();
+            row[4] = vehicle.getEnginePower();
+            row[5] = vehicle.getCapacity();
+            row[6] = vehicle.getDistanceTravelled();
+            row[7] = vehicle.getSpeed();
+            row[8] = Application.getInstance().getDateFormat().format(vehicle.getCreationDate());
+            row[9] = vehicle.getTypeAsString();
+            row[10] = vehicle.getOwner();
+            data.add(row);
         }
     }
     
@@ -41,14 +44,14 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
      * Returns the number of rows in the table model.
      */
     public int getRowCount() {
-        return data.length;
+        return data.size();
     }
 
     /**
      * Returns the number of columns in the table model.
      */
     public int getColumnCount() {
-        return columnNames.length;
+        return columnNames.size();
     }
 
     /**
@@ -56,7 +59,7 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
      */
     @Override
     public String getColumnName(int column) {
-        return columnNames[column];
+        return columnNames.get(column);
     }
 
     /**
@@ -73,23 +76,45 @@ public class VehicleTableModel extends AbstractTableModel/** implements TableMod
      */
     public Object getValueAt(int rowIndex, int columnIndex) {
         try {
-            return data[rowIndex][columnIndex];
+            return data.get(rowIndex)[columnIndex];
         } catch (Exception e) {
             return new Object();
         }
     }
     
     public void update(int id, float x, float y) {
-        for (int i=0; i<data.length; i++) {
-            if ((int)data[i][0] == id) {
-                data[i][2] = x;
-                data[i][3] = y;
+        for (int i=0; i<data.size(); i++) {
+            Object[] row = data.get(i);
+            if ((int)row[0] == id) {
+                row[2] = x;
+                row[3] = y;
+            }
+        }
+    }
+
+    public void update(int id, long capacity) {
+        for (int i=0; i<data.size(); i++) {
+            Object[] row = data.get(i);
+            if ((int)row[0] == id) {
+                row[5] = capacity;
             }
         }
     }
     
-    
-    
+    public void deleteRow(int id) {
+        int index = -1;
+        for (int i=0; i<data.size(); i++) {
+            Object[] row = data.get(i);
+            if ((int)row[0] == id) {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1) {
+            data.remove(index);
+            fireTableRowsDeleted(index, index);
+        }
+    }
 }
     
     

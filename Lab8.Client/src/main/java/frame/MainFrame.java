@@ -659,16 +659,19 @@ public class MainFrame {
 
     public void animateEat(EatOperation eatOperation) {
         monitorPanel.animateEat(eatOperation);
-        /**
-        tableModel.update(stopOperation.getVehicleId(), (float)stopOperation.getTargetPoint().getX(), (float)stopOperation.getTargetPoint().getY());
-        //System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
         int selectedId = 0;
         if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
             selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
         }        
-        tableModel.fireTableDataChanged();
+        if (eatOperation.getVehicle1Capacity() == 0) {
+            tableModel.deleteRow(eatOperation.getVehicle1Id());
+        } else {
+            tableModel.update(eatOperation.getVehicle1Id(), eatOperation.getVehicle1Capacity());
+        }
+        if (eatOperation.getVehicle2Capacity() == 0) {
+            tableModel.deleteRow(eatOperation.getVehicle2Id());
+        }
         selectRow(selectedId);
-        */
     }
 
     

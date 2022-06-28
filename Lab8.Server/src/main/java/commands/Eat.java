@@ -29,29 +29,26 @@ public class Eat implements ICommand{
         
         System.out.print("Eat ");
         
-        int updateId = 0;
-        int deleteId = 0;
+        int updateId = -1;
+        int deleteId = -1;
+        long capacity = operation.getVehicle1Capacity() + operation.getVehicle2Capacity();
         if (operation.getVehicle1Capacity() > operation.getVehicle2Capacity()) {
-            operation.setVehicle1Capacity(operation.getVehicle1Capacity() + operation.getVehicle2Capacity());
+            operation.setVehicle1Capacity(capacity);
             operation.setVehicle2Capacity(0);
             updateId = operation.getVehicle1Id();
             deleteId = operation.getVehicle2Id();
         } else if (operation.getVehicle1Capacity() < operation.getVehicle2Capacity()) {
-            operation.setVehicle2Capacity(operation.getVehicle1Capacity() + operation.getVehicle2Capacity());
             operation.setVehicle1Capacity(0);
+            operation.setVehicle2Capacity(capacity);
             updateId = operation.getVehicle2Id();
             deleteId = operation.getVehicle1Id();
         }
-        
-        return new Response(request.getCommand(), Const.SUCCESS, operation, true);
-        /**
-        
-        if (collectionManager.eatElement(operation.getVehicle1Id(), operation.getVehicle1Capacity(), operation.getVehicle2Id(), operation.getVehicle2Capacity())) {
+
+        if (collectionManager.eatElement(deleteId, updateId, capacity)) {
             return new Response(request.getCommand(), Const.SUCCESS, operation, true);
         } else {
-            return new Response(request.getCommand(), Const.ERROR);
+            return new Response("null", Const.SUCCESS, null, false);
         }
-        */
     }
     
     @Override

@@ -156,7 +156,7 @@ public class CollectionManager {
             pst.executeUpdate();
             success = true;
             
-            System.out.println("Vehile id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
+            System.out.println("Update vehile in DB id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
             
             pst.close(); pst = null;
             con.close(); con = null;
@@ -199,10 +199,17 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "DELETE FROM \"vehicles\" WHERE \"id\"=? AND \"owner\"=?";
+            String sql;
+            if (owner == null) {
+                sql = "DELETE FROM \"vehicles\" WHERE \"id\"=?";
+            } else {
+                sql = "DELETE FROM \"vehicles\" WHERE \"id\"=? AND \"owner\"=?";
+            }
             pst = con.prepareStatement(sql);
             pst.setInt(1, id);
-            pst.setString(2, owner);
+            if (owner != null) {
+                pst.setString(2, owner);
+            }
             pst.executeUpdate();
             success = true;
             pst.close(); pst = null;
@@ -489,52 +496,31 @@ public class CollectionManager {
         return true;
     }
     
-    public synchronized boolean eatElement(int id1, long capacity1, int id2, long capacity2) {
-        int updateId = 0;
-        int deleteId = 0;
-        if (capacity1 > capacity2) {
-            capacity1 = capacity1 + capacity2;
-            capacity2 = 0;
-            updateId = id1;
-            deleteId = id2;
-        } else if (capacity1 < capacity2) {
-            capacity2 = capacity1 + capacity2;
-            capacity1 = 0;
-            updateId = id2;
-            deleteId = id1;
+    public synchronized boolean eatElement(int deleteId, int updateId, long capacity) {
+        boolean update = false;
+        
+        Vehicle updateVehicle = getById(updateId);
+        Vehicle deleteVehicle = getById(deleteId);
+        
+        //System.out.println("Collection size: " + collection.size());
+        if (deleteVehicle != null) {
+            collection.remove(deleteVehicle);
+            System.out.println("Collection size: " + collection.size());
+            processingExecutor.execute(() -> {
+                deleteByIdFromDB(deleteVehicle.getId(), null);
+            });
+            update = true;
         }
         
-        
-        /**
-        
-        
-        Vehicle updateVehicle = null;
-        Vehicle deleteVehicle = null;
-        for(Vehicle vehicle: collection) {
-            if (vehicle.getId() == updateId) {
-                updateVehicle = vehicle;
-            }
-            if (vehicle.getId() == deleteId) {
-                deleteVehicle = vehicle;
-            }
+        if (updateVehicle != null && updateVehicle.getCapacity() != capacity) {
+            updateVehicle.setCapacity(capacity);
+            processingExecutor.execute(() -> {
+                updateVehicleInDB(updateVehicle.getId(), updateVehicle);
+            });
+            update = true;
         }
         
-        if (updateVehicle != null)
-        
-
-        
-        Vehicle avehicle = getById(id);
-        if (avehicle == null || !avehicle.getOwner().equals(owner)) {
-            return false;
-        }
-        avehicle.getCoordinates().setX(x);
-        avehicle.getCoordinates().setY(y);
-        
-        processingExecutor.execute(() -> {
-            updateVehicleInDB(avehicle.getId(), avehicle);
-        });
-        */
-        return true;
+        return update;
     }
     
 }
