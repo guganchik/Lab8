@@ -1,5 +1,6 @@
 package monitor;
 
+import anim.EatOperation;
 import anim.MoveOperation;
 import anim.StopOperation;
 import app.Application;
@@ -44,10 +45,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         private double angle;
         private double stopDistance;
         
+        private boolean master = false;
+        
         
         VehicleEntity(Vehicle vehicle, Color color) {
             this.vehicle = vehicle;
             this.color = color;
+            this.moving = false;
         }
 
         public boolean isHover() {
@@ -79,6 +83,12 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         }
 
         public void startMoving(Point2D startPoint, Point2D targetPoint) {
+            if ((this.targetPoint.getX() == targetPoint.getX()) && (this.targetPoint.getY() == targetPoint.getY())) {
+                master = true;
+                System.out.println("Master: " + master);
+            } else {
+                master = false;
+            }
             this.currentPoint = startPoint;
             this.targetPoint = targetPoint;
             double deltaX = targetPoint.getX() - currentPoint.getX();
@@ -96,17 +106,37 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
                 if (distance > stopDistance) {
                     currentPoint = targetPoint;
                     moving = false;
-                    StopOperation stopOperation = StopOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getTargetPoint());
-                    Application.getInstance().animateStop(stopOperation);
+                    if (master) {
+                        StopOperation stopOperation = StopOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getTargetPoint());
+                        Application.getInstance().animateStop(stopOperation);
+                    }
                 } else {
+                    
                     currentPoint.setLocation(vehicle.getCoordinates().getX()+distance*Math.cos(angle), vehicle.getCoordinates().getY()+distance*Math.sin(angle));
+                    if (master) {
+                        synchronized (entities) {
+                            for (int i=0; i<entities.size(); i++) {
+                                VehicleEntity entity = entities.get(i);
+                                if (vehicle.getId() != entity.vehicle.getId()) {
+                                    double deltax = currentPoint.getX()-entity.getCurrentPoint().getX();
+                                    double deltay = currentPoint.getY()-entity.getCurrentPoint().getY();
+                                    double delta = Math.sqrt(deltax*deltax + deltay*deltay);
+                                    if (delta < (this.r + entity.r)) {
+                                        System.out.println("Intersection!");
+                                        EatOperation eatOperation = EatOperation.of(vehicle.getId(), vehicle.getCapacity(), entity.vehicle.getId(), entity.vehicle.getCapacity());
+                                        Application.getInstance().animateEat(eatOperation);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 makeShape();
             }
         }
         
         public void makeShape() {
-            double r = Math.sqrt(vehicle.getCapacity()/Math.PI);
+            r = Math.sqrt(vehicle.getCapacity()/Math.PI);
             double size = CAPACITY_KOEF*r*screenK;
             if (size < 5) {
                 size = 5;
@@ -187,28 +217,22 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             g2d.drawLine((int)Math.round(getScreenX(0)), 5, (int)Math.round(getScreenX(0)), screenH+5);
 
             Color color;
-            for (VehicleEntity entity : entities) {
-                entity.move();
-                /**
-                if (entity.isMoving()) {
-                    Point2D point = entity.getCurrentPoint();
-                    point.setLocation(point.getX()+0.1f, point.getY()+0.1f);
-                    entity.makeShape();
+            synchronized (entities) {
+                for (VehicleEntity entity : entities) {
+                    entity.move();
+                    if (entity == selectedEntity) {
+                        //System.out.println("Selected");
+                    } else if (entity.isHover()) {
+                        entity.hue = entity.hue + 0.01f;
+                        color = Color.getHSBColor(entity.hue, HOVER_SATURATION, LUMINANCE);   
+                        g2d.setPaint(color);
+                    } else {
+                        g2d.setPaint(entity.color);
+                    }
+                    g2d.fill(entity.shape);                
+                    g2d.setColor(Color.BLACK);
+                    g2d.draw(entity.shape);
                 }
-                */
-                
-                if (entity == selectedEntity) {
-                    //System.out.println("Selected");
-                } else if (entity.isHover()) {
-                    entity.hue = entity.hue + 0.01f;
-                    color = Color.getHSBColor(entity.hue, HOVER_SATURATION, LUMINANCE);   
-                    g2d.setPaint(color);
-                } else {
-                    g2d.setPaint(entity.color);
-                }
-                g2d.fill(entity.shape);                
-                g2d.setColor(Color.BLACK);
-                g2d.draw(entity.shape);
             }
             if (selectedEntity != null) {
                 selectedEntity.saturation = selectedEntity.saturation + selectedEntity.dsaturation;
@@ -233,37 +257,44 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
 
 
     private VehicleEntity getEntityById(int id) {
-        for (VehicleEntity entity : entities) {
-            if (entity.vehicle.getId() == id) {
-                return entity;
-            }
-        };
+        synchronized (entities) {
+            for (VehicleEntity entity : entities) {
+                if (entity.vehicle.getId() == id) {
+                    return entity;
+                }
+            };
+        }
         return null;
     }
     
     public void setSelected(int selected) {
-        for (VehicleEntity entity : entities) {
-            if (entity.vehicle.getId() == selected) {
-                selectedEntity = entity;
-                entity.saturation = MIN_SATURATION;
-                entity.dsaturation = DELTA_SATURATION;
-            }
-        };
+        synchronized (entities) {        
+            for (VehicleEntity entity : entities) {
+                if (entity.vehicle.getId() == selected) {
+                    selectedEntity = entity;
+                    entity.saturation = MIN_SATURATION;
+                    entity.dsaturation = DELTA_SATURATION;
+                }
+            };
+        }
     }
 
 
     @Override
     public void mouseClicked(MouseEvent e) {
         boolean space = true;
-        for (int i = 0; i < entities.size(); i++) {
-            VehicleEntity entity = entities.get(i);
-            if (entity.shape.contains(e.getPoint())) {
-                space = false;
-                parent.selectRow(entity.vehicle.getId());
+        synchronized (entities) {
+            for (int i = 0; i < entities.size(); i++) {
+                VehicleEntity entity = entities.get(i);
+                if (entity.shape.contains(e.getPoint())) {
+                    space = false;
+                    parent.selectRow(entity.vehicle.getId());
+                }
             }
         }
         if (selectedEntity!= null && space) {
-            MoveOperation moveOperation = MoveOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getCurrentPoint(), new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+            selectedEntity.setTargetPoint(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
+            MoveOperation moveOperation = MoveOperation.of(selectedEntity.vehicle.getId(), selectedEntity.getCurrentPoint(), selectedEntity.getTargetPoint());
             Application.getInstance().animateMove(moveOperation);
             //selectedEntity.startMoving(new Point.Double(getRealX(e.getPoint().x), getRealY(e.getPoint().y)));
             //selectedEntity.setCurrentPoint(new Point.Double(selectedEntity.vehicle.getCoordinates().getX(), selectedEntity.vehicle.getCoordinates().getY()));
@@ -273,11 +304,13 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     
     @Override
     public void mouseMoved(MouseEvent e) {
-        for (VehicleEntity entity : entities) {
-            if (entity.shape.contains(e.getPoint())) {
-                entity.hover = true;
-            } else if (entity.hover) {
-                entity.hover = false;
+        synchronized (entities) {        
+            for (VehicleEntity entity : entities) {
+                if (entity.shape.contains(e.getPoint())) {
+                    entity.hover = true;
+                } else if (entity.hover) {
+                    entity.hover = false;
+                }
             }
         }
     }   
@@ -310,8 +343,11 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         }
         VehicleEntity entity = new VehicleEntity(vehicle, color);
         entity.setCurrentPoint(new Point.Double(entity.vehicle.getCoordinates().getX(), entity.vehicle.getCoordinates().getY()));
+        entity.setTargetPoint(entity.getCurrentPoint());
         entity.makeShape();
-        entities.add(entity);
+        synchronized (entities) {
+            entities.add(entity);
+        }
     }
 
     private double getRealX(double screenX) {
@@ -359,8 +395,11 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
     }
     
     public void setCollection(TreeSet<Vehicle> collection) {
+        selectedEntity = null;
         
-        entities.clear();
+        synchronized (entities) {
+            entities.clear();
+        }
         
         boolean first = true;
 
@@ -432,7 +471,8 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
         
         repaint();
     }
-    
+
+
     public void checkHole() {
         for (int i=0; i<entities.size(); i++) {
             for (int j=i+1; j<entities.size(); j++) {
@@ -449,6 +489,7 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             }
         }
     }
+
     
     public void animateMove(MoveOperation moveOperation) {
         VehicleEntity entity = getEntityById(moveOperation.getVehicleId());
@@ -466,6 +507,33 @@ public class MonitorPanel extends JPanel implements MouseListener, MouseMotionLi
             entity.vehicle.getCoordinates().setY((float)stopOperation.getTargetPoint().getY());
         }
     }
-
     
+    public void animateEat(EatOperation eatOperation) {
+        VehicleEntity deleteEntity = null;
+        synchronized (entities) {
+            for (VehicleEntity entity : entities) {
+                if (entity.vehicle.getId() == eatOperation.getVehicle1Id()) {
+                    if (eatOperation.getVehicle1Capacity() == 0) {
+                        deleteEntity = entity;
+                    } else {
+                        entity.vehicle.setCapacity(eatOperation.getVehicle1Capacity());
+                        entity.makeShape();
+                    }
+                } else if (entity.vehicle.getId() == eatOperation.getVehicle2Id()) {
+                    if (eatOperation.getVehicle2Capacity() == 0) {
+                        deleteEntity = entity;
+                    } else {
+                        entity.vehicle.setCapacity(eatOperation.getVehicle2Capacity());
+                        entity.makeShape();
+                    }
+                }
+            }
+            if (deleteEntity != null) {
+                if (selectedEntity == deleteEntity) {
+                    selectedEntity = null;
+                }
+                entities.remove(deleteEntity);
+            }
+        }
+    }
 }

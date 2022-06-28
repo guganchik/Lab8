@@ -1,5 +1,6 @@
 package frame;
 
+import anim.EatOperation;
 import anim.MoveOperation;
 import anim.StopOperation;
 import app.Application;
@@ -634,7 +635,7 @@ public class MainFrame {
     public void animateMove(MoveOperation moveOperation) {
         monitorPanel.animateMove(moveOperation);
         tableModel.update(moveOperation.getVehicleId(), (float)moveOperation.getStartPoint().getX(), (float)moveOperation.getStartPoint().getY());
-        System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
+        //System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
         int selectedId = 0;
         if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
             selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
@@ -646,7 +647,7 @@ public class MainFrame {
     public void animateStop(StopOperation stopOperation) {
         monitorPanel.animateStop(stopOperation);
         tableModel.update(stopOperation.getVehicleId(), (float)stopOperation.getTargetPoint().getX(), (float)stopOperation.getTargetPoint().getY());
-        System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
+        //System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
         int selectedId = 0;
         if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
             selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
@@ -655,7 +656,21 @@ public class MainFrame {
         selectRow(selectedId);
     }
     
-    
+
+    public void animateEat(EatOperation eatOperation) {
+        monitorPanel.animateEat(eatOperation);
+        /**
+        tableModel.update(stopOperation.getVehicleId(), (float)stopOperation.getTargetPoint().getX(), (float)stopOperation.getTargetPoint().getY());
+        //System.out.println("table.getSelectedRow(): " + table.getSelectedRow());
+        int selectedId = 0;
+        if (table.getSelectedRow()>=0 && table.getSelectedRow()<tableModel.getRowCount()) {
+            selectedId = (Integer)table.getValueAt(table.getSelectedRow(), 0);
+        }        
+        tableModel.fireTableDataChanged();
+        selectRow(selectedId);
+        */
+    }
+
     
     public void sortTable() {
         List<SortKey> sortKeys = new ArrayList<SortKey>();

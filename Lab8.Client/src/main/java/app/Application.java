@@ -1,5 +1,6 @@
 package app;
 
+import anim.EatOperation;
 import anim.MoveOperation;
 import anim.StopOperation;
 import collections.User;
@@ -210,6 +211,13 @@ public class Application implements Observer {
         networkProvider.send(request);
         return true;
     }
+
+    public boolean animateEat(EatOperation eatOperation) {
+        Request request;
+        request = new Request("eat", null, eatOperation, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
     
     public boolean sendCommand(String command, String[] args, boolean confirm) {
         int result;
@@ -325,7 +333,6 @@ public class Application implements Observer {
                         response.getCommand().equals("get_collection") || 
                         response.getCommand().equals("remove_by_id") ||
                         response.getCommand().equals("update") ||
-                        response.getCommand().equals("eat") ||
                         response.getCommand().equals("clear") || 
                         response.getCommand().equals("remove_greater") || 
                         response.getCommand().equals("remove_lower") ||
@@ -347,6 +354,8 @@ public class Application implements Observer {
                     mainFrame.animateMove((MoveOperation)response.getObject());
                 } else if (response.getCommand().equals("stop")) {
                     mainFrame.animateStop((StopOperation)response.getObject());
+                } else if (response.getCommand().equals("eat")) {
+                    mainFrame.animateEat((EatOperation)response.getObject());
                 }
             } else {
                 showErrorDialog(response.getResult());

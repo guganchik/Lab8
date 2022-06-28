@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 
 import java.util.*;
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Класс управления коллекцией. Здесь происходят все изменения коллекции.
@@ -23,6 +25,9 @@ public class CollectionManager {
 
     private final TreeSet<Vehicle> collection;
     static Date collectionDate = new Date();
+    
+    ThreadPoolExecutor processingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+    
     //public static final Calendar tzUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC")); 
     public CollectionManager() {
         collection = new TreeSet();
@@ -150,6 +155,9 @@ public class CollectionManager {
             pst.setInt(9, id);
             pst.executeUpdate();
             success = true;
+            
+            System.out.println("Vehile id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
+            
             pst.close(); pst = null;
             con.close(); con = null;
         } catch (Exception e) {
@@ -447,7 +455,7 @@ public class CollectionManager {
         return false;
     }
     
-    public synchronized boolean eatElement(Vehicle v1, Vehicle v2, String owner) {
+    public synchronized boolean eatElementOld(Vehicle v1, Vehicle v2, String owner) {
         if (!v1.getOwner().equals(owner)) {
             return false;
         }
@@ -474,9 +482,59 @@ public class CollectionManager {
         }
         avehicle.getCoordinates().setX(x);
         avehicle.getCoordinates().setY(y);
-        if (updateVehicleInDB(avehicle.getId(), avehicle)) {
-            return true;
-        }
-        return false;
+        
+        processingExecutor.execute(() -> {
+            updateVehicleInDB(avehicle.getId(), avehicle);
+        });
+        return true;
     }
+    
+    public synchronized boolean eatElement(int id1, long capacity1, int id2, long capacity2) {
+        int updateId = 0;
+        int deleteId = 0;
+        if (capacity1 > capacity2) {
+            capacity1 = capacity1 + capacity2;
+            capacity2 = 0;
+            updateId = id1;
+            deleteId = id2;
+        } else if (capacity1 < capacity2) {
+            capacity2 = capacity1 + capacity2;
+            capacity1 = 0;
+            updateId = id2;
+            deleteId = id1;
+        }
+        
+        
+        /**
+        
+        
+        Vehicle updateVehicle = null;
+        Vehicle deleteVehicle = null;
+        for(Vehicle vehicle: collection) {
+            if (vehicle.getId() == updateId) {
+                updateVehicle = vehicle;
+            }
+            if (vehicle.getId() == deleteId) {
+                deleteVehicle = vehicle;
+            }
+        }
+        
+        if (updateVehicle != null)
+        
+
+        
+        Vehicle avehicle = getById(id);
+        if (avehicle == null || !avehicle.getOwner().equals(owner)) {
+            return false;
+        }
+        avehicle.getCoordinates().setX(x);
+        avehicle.getCoordinates().setY(y);
+        
+        processingExecutor.execute(() -> {
+            updateVehicleInDB(avehicle.getId(), avehicle);
+        });
+        */
+        return true;
+    }
+    
 }
