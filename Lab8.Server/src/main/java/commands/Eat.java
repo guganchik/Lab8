@@ -1,5 +1,6 @@
 package commands;
 
+import anim.EatOperation;
 import app.CollectionManager;
 import app.UserManager;
 import collections.User;
@@ -24,32 +25,29 @@ public class Eat implements ICommand{
         if (user == null) {
             return new Response(request.getCommand(), Const.ERROR);
         }
+        EatOperation operation = (EatOperation)request.getObject();
         
-        Vehicle vehicle1 = null;
-        Vehicle vehicle2 = null;
-        try {
-            int id1 = Integer.parseInt(request.getArgs()[0]);
-            vehicle1 = collectionManager.getById(id1);
-            if (vehicle1 == null) {
-                return new Response(request.getCommand(), Const.ERROR);
-            }
-            int id2 = Integer.parseInt(request.getArgs()[1]);
-            vehicle2 = collectionManager.getById(id2);
-            if (vehicle2 == null) {
-                return new Response(request.getCommand(), Const.ERROR);
-            }
-        }
-        catch (ArrayIndexOutOfBoundsException e) {
-            return new Response(request.getCommand(), Const.ERROR);
-        }
-        catch (NumberFormatException e) {
-            return new Response(request.getCommand(), Const.ERROR);
+        //System.out.print("Eat ");
+        
+        int updateId = -1;
+        int deleteId = -1;
+        long capacity = operation.getVehicle1Capacity() + operation.getVehicle2Capacity();
+        if (operation.getVehicle1Capacity() > operation.getVehicle2Capacity()) {
+            operation.setVehicle1Capacity(capacity);
+            operation.setVehicle2Capacity(0);
+            updateId = operation.getVehicle1Id();
+            deleteId = operation.getVehicle2Id();
+        } else if (operation.getVehicle1Capacity() < operation.getVehicle2Capacity()) {
+            operation.setVehicle1Capacity(0);
+            operation.setVehicle2Capacity(capacity);
+            updateId = operation.getVehicle2Id();
+            deleteId = operation.getVehicle1Id();
         }
 
-        if (collectionManager.eatElement(vehicle1, vehicle2, user.getLogin())) {
-            return new Response(request.getCommand(), Const.SUCCESS, collectionManager.getCollection(), true);
+        if (collectionManager.eatElement(deleteId, updateId, capacity)) {
+            return new Response(request.getCommand(), Const.SUCCESS, operation, true);
         } else {
-            return new Response(request.getCommand(), Const.ERROR);
+            return new Response("null", Const.SUCCESS, null, false);
         }
     }
     

@@ -21,6 +21,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
     private Double distanceTravelled; //Поле может быть null, Значение поля должно быть больше 0
     private VehicleType type; //Поле не может быть null
     private String owner; //Поле не может быть null, Строка не может быть пустой
+    private float speed; //Значение поля должно быть больше 0
     
     /**
      * constructor, just set fields
@@ -33,7 +34,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
      * @param type                      Тип ТС
      */
 
-    public Vehicle(int id, String name, Coordinates coordinates, float enginePower, Long capacity, Double distanceTravelled, VehicleType type, String owner){
+    public Vehicle(int id, String name, Coordinates coordinates, float enginePower, Long capacity, Double distanceTravelled, float speed, VehicleType type, String owner){
         creationDate = new Date();
         //System.out.println("creationDate: " + creationDate);
         this.id = id;
@@ -44,9 +45,10 @@ public class Vehicle implements java.lang.Comparable, Serializable {
         this.distanceTravelled = distanceTravelled;
         this.type = type;
         this.owner = owner;
+        this.speed = speed;
     }
 
-    public Vehicle(int id, String name, Coordinates coordinates, Date creationDate, float enginePower, Long capacity, Double distanceTravelled, VehicleType type, String owner){
+    public Vehicle(int id, String name, Coordinates coordinates, Date creationDate, float enginePower, Long capacity, Double distanceTravelled, float speed, VehicleType type, String owner){
         this.id = id;
         this.name = name;
         this.coordinates = coordinates;
@@ -56,6 +58,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
         this.distanceTravelled = distanceTravelled;
         this.type = type;
         this.owner = owner;
+        this.speed = speed;
     }
     
     public Vehicle() {
@@ -138,6 +141,14 @@ public class Vehicle implements java.lang.Comparable, Serializable {
     public void setOwner(String owner) {
         this.owner = owner;
     }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
     
     @Override
     public int compareTo(Object o) {
@@ -158,7 +169,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
             calendar.setTime(timeFormat.parse(creationDate));
         } catch (Exception e) {
         */
-        return "-----------------------------------------------------" + "\n" + "id=" + id + "\n" + "name=" + name + "\n" + "coordinates=" + coordinates + "\n" + "creationDate=" + Const.timeFormat.format(creationDate) + "\n" + "enginePower=" + enginePower + "\n" + "capacity=" + capacity + "\n" + "distanceTravelled=" + distanceTravelled + "\n" + "type=" + type + "\n" + "owner=" + owner + "\n" + "-----------------------------------------------------";
+        return "-----------------------------------------------------" + "\n" + "id=" + id + "\n" + "name=" + name + "\n" + "coordinates=" + coordinates + "\n" + "creationDate=" + Const.timeFormat.format(creationDate) + "\n" + "enginePower=" + enginePower + "\n" + "capacity=" + capacity + "\n" + "distanceTravelled=" + distanceTravelled + "\n" + "type=" + type + "\n" + "owner=" + owner + "speed=" + speed + "\n" + "-----------------------------------------------------";
     }
 
     public static Vehicle input(Scanner scanner, Boolean script) {
@@ -167,7 +178,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
         return vehicle;
     }
     
-    public static Vehicle of(String name, String x, String y, String engine, String capacity, String distance, String type) {
+    public static Vehicle of(String name, String x, String y, String engine, String capacity, String distance, String speed, String type) {
         Vehicle vehicle = new Vehicle();
         vehicle.creationDate = new Date();
         vehicle.name = name;
@@ -176,6 +187,7 @@ public class Vehicle implements java.lang.Comparable, Serializable {
         vehicle.capacity = Long.parseLong(capacity);
         vehicle.distanceTravelled = Double.parseDouble(distance);
         vehicle.type = VehicleType.valueOf(type);
+        vehicle.speed = Float.parseFloat(speed);
         return vehicle;
     }
     

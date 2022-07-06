@@ -17,6 +17,8 @@ import commands.Exit;
 import commands.Add;
 import commands.Eat;
 import commands.GetCollection;
+import commands.Move;
+import commands.Stop;
 import data.Request;
 import data.Response;
 
@@ -49,12 +51,15 @@ public class DataProvider {
         commands.put("max_by_id", new MaxById(collectionManager));              
         commands.put("print_ascending", new PrintAscending(collectionManager)); // Дублирует сортировку в таблице
 
-        commands.put("eat", new Eat(collectionManager));                        // GUI
         commands.put("add", new Add(collectionManager));                        // GUI
         commands.put("user_register", new UserRegister());                      // GUI
         commands.put("user_login", new UserLogin());                            // GUI
         commands.put("get_collection", new GetCollection(collectionManager));   // GUI
         commands.put("exit", new Exit());                                       
+        
+        commands.put("move", new Move(collectionManager));                      // GUI
+        commands.put("stop", new Stop(collectionManager));                      // GUI
+        commands.put("eat", new Eat(collectionManager));                      // GUI
         
     }
 

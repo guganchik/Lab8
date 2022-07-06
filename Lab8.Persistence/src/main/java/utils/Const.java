@@ -17,7 +17,6 @@ public class Const {
     //public static final String      DB_URL                          = "jdbc:postgresql://pg:5432/studs";
     
     public static final String      DB_USER                         = "s335083";
-    //iqn653
 
     public static final int         ERROR_101                       = 101;
     public static final int         ERROR_102                       = 102;
@@ -26,6 +25,7 @@ public class Const {
     public static final int         ERROR_105                       = 105;
     public static final int         ERROR_106                       = 106;
     public static final int         ERROR_107                       = 107;
+    public static final int         ERROR_108                       = 108;
     
     public static final int         ERROR_201                       = 201;
     public static final int         ERROR_202                       = 202;

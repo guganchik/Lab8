@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 
 import java.util.*;
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Класс управления коллекцией. Здесь происходят все изменения коллекции.
@@ -23,8 +25,10 @@ public class CollectionManager {
 
     private final TreeSet<Vehicle> collection;
     static Date collectionDate = new Date();
+    
+    ThreadPoolExecutor processingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+    
     //public static final Calendar tzUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC")); 
-
     public CollectionManager() {
         collection = new TreeSet();
         readCollectionFromDB();
@@ -38,7 +42,7 @@ public class CollectionManager {
         ResultSet rs = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            pst = con.prepareStatement("SELECT \"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\" FROM \"vehicles\"");
+            pst = con.prepareStatement("SELECT \"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\", \"speed\" FROM \"vehicles\"");
             rs = pst.executeQuery();
             Vehicle vehicle;
             while (rs.next()) {
@@ -50,6 +54,7 @@ public class CollectionManager {
                         rs.getFloat("enginePower"),
                         rs.getLong("capacity"),
                         rs.getDouble("distanceTravelled"),
+                        rs.getFloat("speed"),
                         VehicleType.valueOf(rs.getString("vehicleType")),
                         rs.getString("owner")
                 );
@@ -105,7 +110,7 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "INSERT INTO \"vehicles\" (\"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO \"vehicles\" (\"id\", \"name\", \"creationDate\", \"vehicleType\", \"x\", \"y\", \"enginePower\", \"capacity\", \"distanceTravelled\", \"owner\", \"speed\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             pst = con.prepareStatement(sql);
             pst.setInt(1, vehicle.getId());
             pst.setString(2, vehicle.getName());
@@ -117,6 +122,7 @@ public class CollectionManager {
             pst.setLong(8, vehicle.getCapacity());
             pst.setDouble(9, vehicle.getDistanceTravelled());
             pst.setString(10, vehicle.getOwner());
+            pst.setFloat(11, vehicle.getSpeed());
             pst.executeUpdate();
             success = true;
             pst.close(); pst = null;
@@ -136,7 +142,7 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "UPDATE \"vehicles\" SET \"name\"=?, \"vehicleType\"=?, \"x\"=?, \"y\"=?, \"enginePower\"=?, \"capacity\"=?, \"distanceTravelled\"=? WHERE \"id\"=?";
+            String sql = "UPDATE \"vehicles\" SET \"name\"=?, \"vehicleType\"=?, \"x\"=?, \"y\"=?, \"enginePower\"=?, \"capacity\"=?, \"distanceTravelled\"=?, \"speed\"=? WHERE \"id\"=?";
             pst = con.prepareStatement(sql);
             pst.setString(1, vehicle.getName());
             pst.setString(2, vehicle.getTypeAsString());
@@ -145,9 +151,13 @@ public class CollectionManager {
             pst.setFloat(5, vehicle.getEnginePower());
             pst.setLong(6, vehicle.getCapacity());
             pst.setDouble(7, vehicle.getDistanceTravelled());
-            pst.setInt(8, vehicle.getId());
+            pst.setFloat(8, vehicle.getSpeed());
+            pst.setInt(9, id);
             pst.executeUpdate();
             success = true;
+            
+            //System.out.println("Update vehile in DB id:" + id + " x:" + vehicle.getCoordinates().getX() + " y:" + vehicle.getCoordinates().getY());
+            
             pst.close(); pst = null;
             con.close(); con = null;
         } catch (Exception e) {
@@ -189,10 +199,17 @@ public class CollectionManager {
         PreparedStatement pst = null;
         try {
             con = DataAccessDriver.getInstance().getConnection();
-            String sql = "DELETE FROM \"vehicles\" WHERE \"id\"=? AND \"owner\"=?";
+            String sql;
+            if (owner == null) {
+                sql = "DELETE FROM \"vehicles\" WHERE \"id\"=?";
+            } else {
+                sql = "DELETE FROM \"vehicles\" WHERE \"id\"=? AND \"owner\"=?";
+            }
             pst = con.prepareStatement(sql);
             pst.setInt(1, id);
-            pst.setString(2, owner);
+            if (owner != null) {
+                pst.setString(2, owner);
+            }
             pst.executeUpdate();
             success = true;
             pst.close(); pst = null;
@@ -294,19 +311,25 @@ public class CollectionManager {
      * Добавить элемент в коллекцию если  его EnginePower и Capacity больше максимального значения данных полей в этой коллекции
      */
     public synchronized boolean addIfMax(Vehicle element) {
+        boolean add = true;
         Iterator<Vehicle> itr = collection.iterator();
         while (itr.hasNext()) {
             Vehicle v = itr.next();
             if (v.getEnginePower() > element.getEnginePower() || v.getCapacity() > element.getCapacity()) {
+                add = false;
                 break;
             } else if(v.getEnginePower() < element.getEnginePower() && v.getCapacity() < element.getCapacity() && !itr.hasNext()) {
                if (insertVehicleToDB(element)) {
                    collection.add(element);
-                   return true;
+                   add = true;
                } else {
-                   return false;
+                   add = false;
                }
             }
+        }
+        if (add && insertVehicleToDB(element)) {
+            collection.add(element);
+            return true;
         }
         return false;
     }
@@ -438,13 +461,14 @@ public class CollectionManager {
             v1.setEnginePower(v2.getEnginePower());
             v1.setCapacity(v2.getCapacity());
             v1.setDistanceTravelled(v2.getDistanceTravelled());
+            v1.setSpeed(v2.getSpeed());
             v1.setType(v2.getType());
             return true;
         }
         return false;
     }
     
-    public synchronized boolean eatElement(Vehicle v1, Vehicle v2, String owner) {
+    public synchronized boolean eatElementOld(Vehicle v1, Vehicle v2, String owner) {
         if (!v1.getOwner().equals(owner)) {
             return false;
         }
@@ -464,5 +488,45 @@ public class CollectionManager {
         return true;
     }
 
+    public synchronized boolean updateElementXY(int id, float x, float y, String owner) {
+        Vehicle avehicle = getById(id);
+        if (avehicle == null || !avehicle.getOwner().equals(owner)) {
+            return false;
+        }
+        avehicle.getCoordinates().setX(x);
+        avehicle.getCoordinates().setY(y);
+        
+        processingExecutor.execute(() -> {
+            updateVehicleInDB(avehicle.getId(), avehicle);
+        });
+        return true;
+    }
+    
+    public synchronized boolean eatElement(int deleteId, int updateId, long capacity) {
+        boolean update = false;
+        
+        Vehicle updateVehicle = getById(updateId);
+        Vehicle deleteVehicle = getById(deleteId);
+        
+        //System.out.println("Collection size: " + collection.size());
+        if (deleteVehicle != null) {
+            collection.remove(deleteVehicle);
+            //System.out.println("Collection size: " + collection.size());
+            processingExecutor.execute(() -> {
+                deleteByIdFromDB(deleteVehicle.getId(), null);
+            });
+            update = true;
+        }
+        
+        if (updateVehicle != null && updateVehicle.getCapacity() != capacity) {
+            updateVehicle.setCapacity(capacity);
+            processingExecutor.execute(() -> {
+                updateVehicleInDB(updateVehicle.getId(), updateVehicle);
+            });
+            update = true;
+        }
+        
+        return update;
+    }
     
 }

@@ -1,5 +1,8 @@
 package app;
 
+import anim.EatOperation;
+import anim.MoveOperation;
+import anim.StopOperation;
 import collections.User;
 import collections.Vehicle;
 import common.InputCheck;
@@ -48,10 +51,7 @@ public class Application implements Observer {
     private DateFormat dateFormat;
     private ResourceBundle resourceBundle;
     
-    public static String[] COLUMNS = new String[] {"id", "name", "x", "y", "engine", "capacity", "distance", "date", "type", "owner"};
-    
-    
-    private int mode;
+    public static String[] COLUMNS = new String[] {"id", "name", "x", "y", "engine", "capacity", "distance", "speed", "date", "type", "owner"};
     
     private LoginFrame loginFrame;
     private RegisterFrame registerFrame;
@@ -59,7 +59,7 @@ public class Application implements Observer {
     
     private NetworkProvider networkProvider;
 
-    private TreeSet<Vehicle> collection;
+    //private TreeSet<Vehicle> collection;
     
 
     public Application() {
@@ -157,8 +157,8 @@ public class Application implements Observer {
         }
     }
     
-    public boolean saveVehicle(String id, String name, String x, String y, String engine, String capacity, String distance, String type, String owner) {
-        int result = InputCheck.checkVehicle(name, x, y, engine, capacity, distance, type);
+    public boolean saveVehicle(String id, String name, String x, String y, String engine, String capacity, String distance, String speed, String type, String owner) {
+        int result = InputCheck.checkVehicle(name, x, y, engine, capacity, distance, speed, type);
         if (result != Const.SUCCESS) {
             showErrorDialog(result);
             return false;
@@ -169,11 +169,11 @@ public class Application implements Observer {
             Request request;
             Vehicle vehicle;
             if (id.equals("")) {
-                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, type);
+                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, speed, type);
                 request = new Request("add", null, vehicle, user.getLogin(), user.getHash());
             } else {
                 //int aid = Integer.parseInt(id);
-                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, type);
+                vehicle = Vehicle.of(name, x, y, engine, capacity, distance, speed, type);
                 //vehicle.setId(aid);
                 String[] args = new String[1];
                 args[0] = id;
@@ -191,6 +191,27 @@ public class Application implements Observer {
         args[0] = String.valueOf(id1);
         args[1] = String.valueOf(id2);
         request = new Request("eat", args, null, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
+    
+    public boolean animateMove(MoveOperation moveOperation) {
+        Request request;
+        request = new Request("move", null, moveOperation, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
+    
+    public boolean animateStop(StopOperation stopOperation) {
+        Request request;
+        request = new Request("stop", null, stopOperation, user.getLogin(), user.getHash());
+        networkProvider.send(request);
+        return true;
+    }
+
+    public boolean animateEat(EatOperation eatOperation) {
+        Request request;
+        request = new Request("eat", null, eatOperation, user.getLogin(), user.getHash());
         networkProvider.send(request);
         return true;
     }
@@ -235,12 +256,12 @@ public class Application implements Observer {
                 showInfoDialog();
             }
         } else if (command.equals("add_if_max")) {
-            result = InputCheck.checkVehicle(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            result = InputCheck.checkVehicle(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             if (result != Const.SUCCESS) {
                 showErrorDialog(result);
                 return false;
             }
-            Vehicle vehicle = Vehicle.of(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            Vehicle vehicle = Vehicle.of(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             Request request = new Request(command, null, vehicle, user.getLogin(), user.getHash());
             networkProvider.send(request);
             if (confirm) {
@@ -267,6 +288,7 @@ public class Application implements Observer {
             "engine=" + vehicle.getEnginePower() + "\n" +
             "capacity=" + vehicle.getCapacity() + "\n" +
             "distance=" + vehicle.getDistanceTravelled() + "\n" +
+            "speed=" + vehicle.getSpeed() + "\n" +
             "date=" + vehicle.getCreationDate() + "\n" +
             "type=" + vehicle.getTypeAsString() + "\n" +
             "owner=" + vehicle.getOwner();
@@ -274,9 +296,11 @@ public class Application implements Observer {
     }
     
     
+    /**
     public TreeSet<Vehicle> getCollection() {
         return collection;
     }
+    */
     
     public void showErrorDialog(int code) {
         JOptionPane.showMessageDialog(new JFrame(), getLocalizedString("error.code." + code), getLocalizedString("error"),
@@ -308,25 +332,32 @@ public class Application implements Observer {
                         response.getCommand().equals("get_collection") || 
                         response.getCommand().equals("remove_by_id") ||
                         response.getCommand().equals("update") ||
-                        response.getCommand().equals("eat") ||
                         response.getCommand().equals("clear") || 
                         response.getCommand().equals("remove_greater") || 
                         response.getCommand().equals("remove_lower") ||
-                        response.getCommand().equals("add_if_max")
+                        response.getCommand().equals("add_if_max") ||
+                        response.getCommand().equals("add")
                         ) {
-                    collection = (TreeSet<Vehicle>)response.getObject();
+                    TreeSet<Vehicle> collection = (TreeSet<Vehicle>)response.getObject();
                     mainFrame.updateCollection(collection);
+                    /**
                 } else if (response.getCommand().equals("add")) {
-                    Vehicle vehicle = (Vehicle)response.getObject();
-                    collection.add(vehicle);
+                    //Vehicle vehicle = (Vehicle)response.getObject();
+                    //collection.add(vehicle);
                     mainFrame.updateCollection(collection);
+                    */
                 } else if (response.getCommand().equals("max_by_id")) {
                     if (response.getObject() != null) {
-                        Vehicle vehicle = (Vehicle)response.getObject();
                         showVehicleInfoDialog((Vehicle)response.getObject());
                     }
                 } else if (response.getCommand().equals("info")) {
                     showCollectionInfoDialog((CollectionInfo)response.getObject());
+                } else if (response.getCommand().equals("move")) {
+                    mainFrame.animateMove((MoveOperation)response.getObject());
+                } else if (response.getCommand().equals("stop")) {
+                    mainFrame.animateStop((StopOperation)response.getObject());
+                } else if (response.getCommand().equals("eat")) {
+                    mainFrame.animateEat((EatOperation)response.getObject());
                 }
             } else {
                 showErrorDialog(response.getResult());
@@ -381,9 +412,4 @@ public class Application implements Observer {
             }
         }
     }
-    
-    public void setMode(int mode) {
-        this.mode = mode;
-    }
-    
 }

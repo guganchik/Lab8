@@ -1,0 +1,4 @@
+# Project exclude paths
+/Lab8.Client/target/
+/Lab8.Persistence/target/
+/Lab8.Server/target/
